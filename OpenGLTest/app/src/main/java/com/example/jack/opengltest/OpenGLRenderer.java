@@ -10,8 +10,10 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
     private Cube mCube = new Cube();
-    private float mCubeRotation;
-
+    private Cube2 mCube2 = new Cube2();
+    private Axes axes = new Axes();
+    float rotate = 0;
+    float rotateVector[] = new float[3];
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
@@ -28,16 +30,11 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 gl) {
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
-        gl.glLoadIdentity();
-
-        gl.glTranslatef(0.0f, 0.0f, -10.0f);
-        gl.glRotatef(mCubeRotation, 1.0f, 1.0f, 1.0f);
-
+        gl.glTranslatef(0, 0, -10f);
+        gl.glRotatef(rotate, rotateVector[0], rotateVector[1], rotateVector[2]);
+        axes.draw(gl);
         mCube.draw(gl);
-
-        gl.glLoadIdentity();
-
-        mCubeRotation -= 0.15f;
+        gl.glTranslatef(0, 0, 10f);
     }
 
     @Override

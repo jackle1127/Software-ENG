@@ -6,30 +6,30 @@ import java.nio.FloatBuffer;
 
 import javax.microedition.khronos.opengles.GL10;
 
-public class Cube {
+public class Cube2 {
     private FloatBuffer mVertexBuffer;
     private FloatBuffer mColorBuffer;
     private ByteBuffer  mIndexBuffer;
 
     private float vertices[] = {
-            -1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f, 1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f,
-            -1.0f, -1.0f, 1.0f,
-            1.0f, -1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f
+            -2.0f, -2.0f, -2.0f,
+           0, -2.0f, -2.0f,
+           0,0, -2.0f,
+            -2.0f,0, -2.0f,
+            -2.0f, -2.0f,0,
+           0, -2.0f,0,
+           0,0,0,
+            -2.0f,0,0
     };
     private float colors[] = {
-            0.0f,  1.0f,  0.0f,  0.5f,
-            0.0f,  1.0f,  0.0f,  0.5f,
-            1.0f,  0.5f,  0.0f,  0.5f,
-            1.0f,  0.5f,  0.0f,  0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,
-            0.0f,  0.0f,  1.0f,  0.5f,
-            1.0f,  0.0f,  1.0f,  0.5f
+            0.0f,  1.0f,  0.0f,  1.0f,
+            0.0f,  1.0f,  0.0f,  1.0f,
+            1.0f,  0.5f,  0.0f,  1.0f,
+            1.0f,  0.5f,  0.0f,  1.0f,
+            1.0f,  0.0f,  0.0f,  1.0f,
+            1.0f,  0.0f,  0.0f,  1.0f,
+            0.0f,  0.0f,  1.0f,  1.0f,
+            1.0f,  0.0f,  1.0f,  1.0f
     };
 
     private byte indices[] = {
@@ -41,7 +41,7 @@ public class Cube {
             3, 0, 1, 3, 1, 2
     };
 
-    public Cube() {
+    public Cube2() {
         ByteBuffer byteBuf = ByteBuffer.allocateDirect(vertices.length * 4);
         byteBuf.order(ByteOrder.nativeOrder());
         mVertexBuffer = byteBuf.asFloatBuffer();
