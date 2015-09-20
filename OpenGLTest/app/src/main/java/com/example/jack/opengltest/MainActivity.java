@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
@@ -18,14 +19,15 @@ public class MainActivity extends AppCompatActivity {
     SensorManager sensorManager;
     Sensor theSensor;
     OpenGLRenderer theRenderer;
+    float dx, dy, dz;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         GLSurfaceView view = new GLSurfaceView(this);
         theRenderer = new OpenGLRenderer();
         view.setRenderer(theRenderer);
-        this.setContentView(view);
+        SurfaceView theSurface = (SurfaceView) findViewById(R.id.surfaceView);
+        setContentView(view);
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         theSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         view.setOnTouchListener(onTouchListener);
@@ -42,18 +44,9 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_MOVE:
                     float currentX = motionEvent.getX();
                     float currentY = motionEvent.getY();
-                    float dx = (currentX - lastX) / 4;
-                    float dy = (currentY - lastX) / 4;
-//                    y += (currentX - lastX) / 4;
-//                    x += (currentY - lastY) / 4;
-                    float length = (float) Math.sqrt(dx * dx + dy * dy);
-                    float angel = (float) Math.atan2(dx, dy);
-                    float[] vector = new float[3];
-                    vector[0] = (float) Math.cos(angel) * 1;
-                    vector[1] = (float) Math.sin(angel) * 1;
-                    vector[3] = 0;
-                    theRenderer.rotateVector = vector;
-                    theRenderer.rotate = length / 6;
+                    dx = (currentX - lastX) / 4;
+                    dy = (currentY - lastY) / 4;
+                    dz = 0;
                     lastX = currentX;
                     lastY = currentY;
                     glUpdate();
@@ -70,9 +63,9 @@ public class MainActivity extends AppCompatActivity {
         sensorManager.unregisterListener(sensorEventListener);
     }
     public void glUpdate() {
-//        theRenderer.x = x;
-//        theRenderer.y = y;
-//        theRenderer.z = z;
+        theRenderer.x = dx;
+        theRenderer.y = dy;
+        theRenderer.z = dz;
     }
     public SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
