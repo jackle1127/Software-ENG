@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
             for (int i = 0; i < gravityVector.length; i++) {
-                gravityVector[i] = sensorEvent.values[i];
+                gravityVector[i] = -sensorEvent.values[i];
             }
             calibrate();
         }
@@ -155,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void calibrate() {
         long currentTime = System.currentTimeMillis();
-        if (currentTime - calibrationStartTime > 1) {
+        if (currentTime - calibrationStartTime > 1000) {
             calibrationStartTime = currentTime;
             anchorVectorY = flipVector(gravityVector);
             anchorVectorX = crossProduct(gravityVector, magneticVector);
@@ -166,10 +166,10 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < anchorVectorX.length; i++) {
                 anchorMatrix[i*4] = anchorVectorX[i];
             }
-            for (int i = 0; i < anchorVectorX.length; i++) {
+            for (int i = 0; i < anchorVectorY.length; i++) {
                 anchorMatrix[i*4 + 1] = anchorVectorY[i];
             }
-            for (int i = 0; i < anchorVectorX.length; i++) {
+            for (int i = 0; i < anchorVectorZ.length; i++) {
                 anchorMatrix[i*4 + 2] = anchorVectorZ[i];
             }
             anchorMatrix[15] = 1;
@@ -179,6 +179,22 @@ public class MainActivity extends AppCompatActivity {
                 }
                 System.out.print(anchorMatrix[i] + ", ");
             }
+//            System.out.print("\nX: ");
+//            for (int i = 0; i < anchorVectorX.length; i++) {
+//                System.out.print(anchorVectorX[i] + ", ");
+//            }
+//            System.out.print("\nY: ");
+//            for (int i = 0; i < anchorVectorY.length; i++) {
+//                System.out.print(anchorVectorY[i] + ", ");
+//            }
+//            System.out.print("\nZ: ");
+//            for (int i = 0; i < anchorVectorZ.length; i++) {
+//                System.out.print(anchorVectorZ[i] + ", ");
+//            }
+//            System.out.println("\nGravity: ");
+//            for (int i = 0; i < gravityVector.length; i++) {
+//                System.out.print(gravityVector[i] + ", ");
+//            }
             theRenderer.calibrate(anchorMatrix);
         }
     }
