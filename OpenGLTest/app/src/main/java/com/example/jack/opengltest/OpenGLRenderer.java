@@ -17,7 +17,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     float x = 0;
     float y = 0;
     float z = 0;
-    float[] local = new float[16];
+    float[] anchorMatrix = new float[16];
+    float[] tempMatrix = new float[16];
+    int orientation = 0;
     Context context;
     Bitmap groundBitmap;
 
@@ -38,44 +40,48 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glDepthFunc(GL10.GL_LEQUAL);
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
                 GL10.GL_NICEST);
-        Matrix.setIdentityM(local, 0);
+        Matrix.setIdentityM(anchorMatrix, 0);
+        for (int i = 0; i < anchorMatrix.length; i++) {
+            if (i % 4 == 0) {
+                System.out.println();
+            }
+            System.out.print(anchorMatrix[i] + ", ");
+        }
     }
 
     public void calibrate(float[] matrix) {
         float difference = 0;
         for (int i = 0; i < matrix.length; i++) {
-            difference += Math.abs(matrix[i] - local[i]);
+            difference += Math.abs(matrix[i] - anchorMatrix[i]);
         }
-        if (difference > 0.3f) {
+        if (difference > .9f) {
             for (int i = 0; i < matrix.length; i++) {
-                local[i] = matrix[i];
+                anchorMatrix[i] = matrix[i];
             }
         }
     }
 
     public void rotate () {
-//        Matrix.rotateM(local, 0, x, local[0], local[4], local[8]);
-//        Matrix.rotateM(local, 0, y, local[1], local[5], local[9]);
-//        Matrix.rotateM(local, 0, z, local[2], local[6], local[10]);
-        Matrix.rotateM(local, 0, y, 0, 1, 0);
-        Matrix.rotateM(local, 0, x, 1, 0, 0);
-        Matrix.rotateM(local, 0, z, 0, 0, 1);
+        Matrix.rotateM(anchorMatrix, 0, x, anchorMatrix[0], anchorMatrix[4], anchorMatrix[8]);
+        Matrix.rotateM(anchorMatrix, 0, y, anchorMatrix[1], anchorMatrix[5], anchorMatrix[9]);
+        Matrix.rotateM(anchorMatrix, 0, z, anchorMatrix[2], anchorMatrix[6], anchorMatrix[10]);
         System.out.println("\nBegin:");
-        for (int i = 0; i < local.length; i++) {
-            if (i % 4 == 0) {
-                System.out.println();
-            }
-            System.out.print(local[i] + ", ");
-        }
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
         gl.glLoadIdentity();
-        gl.glMultMatrixf(local, 0);
-        gl.glTranslatef(0, -3f, 0);
-
+        for (int i = 0; i < anchorMatrix.length; i++) {
+            tempMatrix[i] = anchorMatrix[i];
+        }
+        if (orientation == 1) {
+            Matrix.rotateM(tempMatrix, 0, 90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
+        } else if (orientation == 3) {
+            Matrix.rotateM(tempMatrix, 0, -90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
+        }
+        gl.glMultMatrixf(tempMatrix, 0);
+        gl.glTranslatef(0, -2f, 0);
         gl.glPushMatrix();
         gl.glTranslatef(0, 0, -6f);
         mCube.draw(gl);
@@ -94,7 +100,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glPopMatrix();
         gl.glPushMatrix();
         gl.glTranslatef(0, -1f, 0);
-        gl.glScalef(15.0f, 1.0f, 15.0f);
+        gl.glScalef(23.0f, 1.0f, 23.0f);
         ground.draw(gl);
         gl.glPopMatrix();
         gl.glLoadIdentity();

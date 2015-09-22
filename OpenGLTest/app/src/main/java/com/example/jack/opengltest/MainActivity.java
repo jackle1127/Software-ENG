@@ -1,5 +1,6 @@
 package com.example.jack.opengltest;
 
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Sensor;
@@ -7,6 +8,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Display;
@@ -38,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         GLSurfaceView view = new GLSurfaceView(this);
-        Bitmap temp = BitmapFactory.decodeResource(this.getResources(), R.drawable.fluffy);
+        Bitmap temp = BitmapFactory.decodeResource(this.getResources(), R.drawable.map);
         theRenderer = new OpenGLRenderer(this, temp);
         view.setRenderer(theRenderer);
         setContentView(view);
@@ -74,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     };
     public void onResume() {
         super.onResume();
-//        sensorManager.registerListener(gyroListener, gyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(gyroListener, gyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(magneticListener, magneticSensor, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(gravityListener, gravitySensor, SensorManager.SENSOR_DELAY_FASTEST);
     }
@@ -97,23 +99,9 @@ public class MainActivity extends AppCompatActivity {
                 float valueX = sensorEvent.values[0];
                 float valueY = sensorEvent.values[1];
                 float valueZ = sensorEvent.values[2];
-                switch (display.getOrientation()) {
-                    case 0:
-                        dx = -(float) (valueX * 180 / Math.PI) * deltaTime;
-                        dy = -(float) (valueY * 180 / Math.PI) * deltaTime;
-                        dz = -(float) (valueZ * 180 / Math.PI) * deltaTime;
-                        break;
-                    case 1:
-                        dx = (float) (valueY * 180 / Math.PI) * deltaTime;
-                        dy = -(float) (valueX * 180 / Math.PI) * deltaTime;
-                        dz = -(float) (valueZ * 180 / Math.PI) * deltaTime;
-                        break;
-                    case 3:
-                        dx = -(float) (valueY * 180 / Math.PI) * deltaTime;
-                        dy = (float) (valueX * 180 / Math.PI) * deltaTime;
-                        dz = -(float) (valueZ * 180 / Math.PI) * deltaTime;
-                        break;
-                }
+                dx = -(float) (valueX * 180 / Math.PI) * deltaTime;
+                dy = -(float) (valueY * 180 / Math.PI) * deltaTime;
+                dz = -(float) (valueZ * 180 / Math.PI) * deltaTime;
             }
             glUpdate();
             gyroStartTime = currentTime;
@@ -155,47 +143,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void calibrate() {
         long currentTime = System.currentTimeMillis();
-        if (currentTime - calibrationStartTime > 1000) {
+        if (currentTime - calibrationStartTime > 700) {
             calibrationStartTime = currentTime;
-            anchorVectorY = flipVector(gravityVector);
-            anchorVectorX = crossProduct(gravityVector, magneticVector);
-            anchorVectorZ = crossProduct(gravityVector, anchorVectorX);
-            normalize(anchorVectorX);
-            normalize(anchorVectorY);
-            normalize(anchorVectorZ);
+            anchorVectorX[0] = 1;
+            anchorVectorY[1] = 1;
+            anchorVectorZ[2] = 1;
+            anchorVectorY = normalize(flipVector(gravityVector));
+            anchorVectorX = normalize(crossProduct(gravityVector, magneticVector));
+            anchorVectorZ = normalize(crossProduct(gravityVector,
+                    crossProduct(gravityVector, magneticVector)));
             for (int i = 0; i < anchorVectorX.length; i++) {
-                anchorMatrix[i*4] = anchorVectorX[i];
+                anchorMatrix[i] = anchorVectorX[i];
             }
             for (int i = 0; i < anchorVectorY.length; i++) {
-                anchorMatrix[i*4 + 1] = anchorVectorY[i];
+                anchorMatrix[i + 4] = anchorVectorY[i];
             }
             for (int i = 0; i < anchorVectorZ.length; i++) {
-                anchorMatrix[i*4 + 2] = anchorVectorZ[i];
+                anchorMatrix[i + 8] = anchorVectorZ[i];
             }
             anchorMatrix[15] = 1;
-            for (int i = 0; i < anchorMatrix.length; i++) {
-                if (i % 4 == 0) {
-                    System.out.println();
-                }
-                System.out.print(anchorMatrix[i] + ", ");
-            }
-//            System.out.print("\nX: ");
-//            for (int i = 0; i < anchorVectorX.length; i++) {
-//                System.out.print(anchorVectorX[i] + ", ");
-//            }
-//            System.out.print("\nY: ");
-//            for (int i = 0; i < anchorVectorY.length; i++) {
-//                System.out.print(anchorVectorY[i] + ", ");
-//            }
-//            System.out.print("\nZ: ");
-//            for (int i = 0; i < anchorVectorZ.length; i++) {
-//                System.out.print(anchorVectorZ[i] + ", ");
-//            }
-//            System.out.println("\nGravity: ");
-//            for (int i = 0; i < gravityVector.length; i++) {
-//                System.out.print(gravityVector[i] + ", ");
-//            }
             theRenderer.calibrate(anchorMatrix);
+            theRenderer.orientation = display.getOrientation();
         }
     }
 
@@ -214,15 +182,22 @@ public class MainActivity extends AppCompatActivity {
         return result;
     }
 
-    private void normalize(float[] vector) {
+    private float[] normalize(float[] vector) {
+        float[] result = new float[3];
         float length = (float) Math.sqrt(
                 vector[0] * vector[0] +
                 vector[1] * vector[1] +
                 vector[2] * vector[2]
         );
-        vector[0] /= length;
-        vector[1] /= length;
-        vector[2] /= length;
+        for (int i = 0; i < vector.length; i++) {
+            result[i] = vector[i] / length;
+        }
+        return result;
+    }
+    @Override
+    public void onConfigurationChanged(Configuration config) {
+        super.onConfigurationChanged(config);
+        theRenderer.orientation = display.getOrientation();
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
