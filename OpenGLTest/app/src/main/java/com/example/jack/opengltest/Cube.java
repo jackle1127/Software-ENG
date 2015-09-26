@@ -22,14 +22,14 @@ public class Cube {
             -1.0f, 1.0f, 1.0f
     };
     private float colors[] = {
-            0.0f,  1.0f,  0.0f,  0.5f,
-            0.0f,  1.0f,  0.0f,  0.5f,
-            1.0f,  0.5f,  0.0f,  0.5f,
-            1.0f,  0.5f,  0.0f,  0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,
-            0.0f,  0.0f,  1.0f,  0.5f,
-            1.0f,  0.0f,  1.0f,  0.5f
+            0.0f,  1.0f,  0.0f,  0.8f,
+            0.0f,  1.0f,  0.0f,  0.8f,
+            1.0f,  0.5f,  0.0f,  0.8f,
+            1.0f,  0.5f,  0.0f,  0.8f,
+            1.0f,  0.0f,  0.0f,  0.8f,
+            1.0f,  0.0f,  0.0f,  0.8f,
+            0.0f,  0.0f,  1.0f,  0.8f,
+            1.0f,  0.0f,  1.0f,  0.8f
     };
 
     private byte indices[] = {
@@ -62,6 +62,7 @@ public class Cube {
     public void draw(GL10 gl) {
         gl.glFrontFace(GL10.GL_CW);
 
+        gl.glEnable(GL10.GL_BLEND);
         gl.glVertexPointer(3, GL10.GL_FLOAT, 0, mVertexBuffer);
         gl.glColorPointer(4, GL10.GL_FLOAT, 0, mColorBuffer);
 
@@ -71,6 +72,7 @@ public class Cube {
         gl.glDrawElements(GL10.GL_TRIANGLES, 36, GL10.GL_UNSIGNED_BYTE,
                 mIndexBuffer);
 
+        gl.glDisable(GL10.GL_BLEND);
         gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glDisableClientState(GL10.GL_COLOR_ARRAY);
     }

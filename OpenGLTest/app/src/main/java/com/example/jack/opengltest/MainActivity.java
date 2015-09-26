@@ -1,14 +1,18 @@
 package com.example.jack.opengltest;
 
+import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
 import android.opengl.GLSurfaceView;
-import android.opengl.Matrix;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Display;
@@ -17,6 +21,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.ViewGroup.LayoutParams;
 
 public class MainActivity extends AppCompatActivity {
     float lastX = 0, lastY = 0;
@@ -36,44 +41,62 @@ public class MainActivity extends AppCompatActivity {
     float[] gravityVector = new float[3];
     WindowManager windowManager;
     Display display;
+    Bitmap groundImg;
+    CameraPreview cameraPreview;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         GLSurfaceView view = new GLSurfaceView(this);
-        Bitmap temp = BitmapFactory.decodeResource(this.getResources(), R.drawable.map);
-        theRenderer = new OpenGLRenderer(this, temp);
+        BitmapFactory.Options opt = new BitmapFactory.Options();
+        opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+        Bitmap tempImg = BitmapFactory.decodeResource(this.getResources(), R.drawable.map, opt);
+        groundImg = tempImg.copy(Bitmap.Config.ARGB_8888, true);
+        int pixelArray[] = new int[groundImg.getWidth() * groundImg.getHeight()];
+        groundImg.getPixels(pixelArray, 0, groundImg.getWidth(), 0, 0, groundImg.getWidth(), groundImg.getHeight());
+        for (int i = 0; i < pixelArray.length; i++) {
+            pixelArray[i] = pixelArray[i] & 0x00FFFFFF ^ 0x99000000;
+        }
+        groundImg.setPixels(pixelArray, 0, groundImg.getWidth(), 0, 0, groundImg.getWidth(), groundImg.getHeight());
+        theRenderer = new OpenGLRenderer(this, groundImg);
+        view.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        view.getHolder().setFormat(PixelFormat.RGBA_8888);
         view.setRenderer(theRenderer);
         setContentView(view);
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         magneticSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        view.setOnTouchListener(onTouchListener);
+//        view.setOnTouchListener(onTouchListener);
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         display = windowManager.getDefaultDisplay();
+        cameraPreview = new CameraPreview(this, display);
+        addContentView(cameraPreview, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        theRenderer.orientation = display.getOrientation();
     }
-
-    View.OnTouchListener onTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            switch (motionEvent.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    lastX = motionEvent.getX();
-                    lastY = motionEvent.getY();
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    float currentX = motionEvent.getX();
-                    float currentY = motionEvent.getY();
-                    dy = -(currentX - lastX) / 4;
-                    dx = -(currentY - lastY) / 4;
-                    dz = 0;
-                    lastX = currentX;
-                    lastY = currentY;
-                    glUpdate();
-            }
-            return true;
-        }
-    };
+//
+//    View.OnTouchListener onTouchListener = new View.OnTouchListener() {
+//        @Override
+//        public boolean onTouch(View view, MotionEvent motionEvent) {
+//            switch (motionEvent.getAction()) {
+//                case MotionEvent.ACTION_DOWN:
+//                    lastX = motionEvent.getX();
+//                    lastY = motionEvent.getY();
+//                    break;
+//                case MotionEvent.ACTION_MOVE:
+//                    float currentX = motionEvent.getX();
+//                    float currentY = motionEvent.getY();
+//                    dy = -(currentX - lastX) / 4;
+//                    dx = -(currentY - lastY) / 4;
+//                    dz = 0;
+//                    lastX = currentX;
+//                    lastY = currentY;
+//                    glRotate();
+//            }
+//            return true;
+//        }
+//    };
     public void onResume() {
         super.onResume();
         sensorManager.registerListener(gyroListener, gyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
@@ -84,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         sensorManager.unregisterListener(gyroListener);
     }
-    public void glUpdate() {
+    public void glRotate() {
         theRenderer.x = dx;
         theRenderer.y = dy;
         theRenderer.z = dz;
@@ -103,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
                 dy = -(float) (valueY * 180 / Math.PI) * deltaTime;
                 dz = -(float) (valueZ * 180 / Math.PI) * deltaTime;
             }
-            glUpdate();
+            glRotate();
             gyroStartTime = currentTime;
         }
 
@@ -162,11 +185,39 @@ public class MainActivity extends AppCompatActivity {
                 anchorMatrix[i + 8] = anchorVectorZ[i];
             }
             anchorMatrix[15] = 1;
-            theRenderer.calibrate(anchorMatrix);
+            theRenderer.angleOfView = cameraPreview.angleOfView;
             theRenderer.orientation = display.getOrientation();
+            theRenderer.calibrate(anchorMatrix);
+            resizeGLView();
         }
     }
 
+    private void resizeGLView() {
+        if (cameraPreview.camWidth > 0 && cameraPreview.camHeight > 0) {
+            int orientation = display.getOrientation();
+            if (orientation == 0 || orientation == 2) {
+//                cameraPreview.getHolder().setFixedSize(
+//                        cameraPreview.getHeight() * cameraPreview.camWidth / cameraPreview.camHeight
+//                        , cameraPreview.getHeight());
+                System.out.println(cameraPreview.camWidth + ", " + cameraPreview.camHeight);
+                System.out.println(cameraPreview.getWidth() + ", " + cameraPreview.getHeight());
+                System.out.println("weird");
+            } else {
+                cameraPreview.getHolder().setFixedSize(cameraPreview.getWidth(), 1549);
+//                cameraPreview.getHolder().setFixedSize(cameraPreview.getWidth()
+//                        , cameraPreview.getWidth()
+//                        * cameraPreview.camWidth / cameraPreview.camHeight);
+//                cameraPreview.getHolder().setFixedSize(
+//                        cameraPreview.getHeight() * cameraPreview.camWidth / cameraPreview.camHeight
+//                        , cameraPreview.getHeight());
+                System.out.println(cameraPreview.camWidth + ", " + cameraPreview.camHeight);
+                System.out.println(cameraPreview.getWidth() + ", " + cameraPreview.getHeight());
+                System.out.println("right?" + cameraPreview.getWidth()
+                        * cameraPreview.camWidth / cameraPreview.camHeight);
+
+            }
+        }
+    }
     private float[] flipVector(float[] a) {
         float[] result = new float[3];
         result[0] = -a[0];
@@ -186,8 +237,8 @@ public class MainActivity extends AppCompatActivity {
         float[] result = new float[3];
         float length = (float) Math.sqrt(
                 vector[0] * vector[0] +
-                vector[1] * vector[1] +
-                vector[2] * vector[2]
+                        vector[1] * vector[1] +
+                        vector[2] * vector[2]
         );
         for (int i = 0; i < vector.length; i++) {
             result[i] = vector[i] / length;
@@ -198,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration config) {
         super.onConfigurationChanged(config);
         theRenderer.orientation = display.getOrientation();
+        resizeGLView();
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

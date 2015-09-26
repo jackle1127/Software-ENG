@@ -58,6 +58,8 @@ public class Plane {
     void draw(GL10 gl) {
         gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
+        gl.glEnable(GL10.GL_BLEND);
+        gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
 
@@ -68,6 +70,7 @@ public class Plane {
 
         gl.glDrawArrays(GL10.GL_TRIANGLE_STRIP, 0, vertices.length / 3);
 
+        gl.glDisable(GL10.GL_BLEND);
         gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glDisableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
     }
