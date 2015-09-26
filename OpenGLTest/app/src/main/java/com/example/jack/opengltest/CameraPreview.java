@@ -15,6 +15,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     float angleOfView = -1.0f;
     boolean ready = false;
     Display display;
+
     public CameraPreview(Context context, Display ds) {
         super(context);
         getHolder().addCallback(this);
@@ -23,12 +24,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        camera = getCamera();
-        Camera.Parameters p = camera.getParameters();
-        List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-        Camera.Size previewSize = previewSizes.get(0);
-        camWidth = previewSize.width;
-        camHeight = previewSize.height;
+        createCamera();
+        ready = true;
     }
 
     static Camera getCamera() {
@@ -39,34 +36,72 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         return c;
     }
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        if (camera != null) {
+            Camera.Parameters p = camera.getParameters();
+            List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
+            Camera.Size previewSize = previewSizes.get(previewSizes.size() * 4 / 5);
+            camWidth = previewSize.width;
+            camHeight = previewSize.height;
 
-        Camera.Parameters p = camera.getParameters();
-        List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-        Camera.Size previewSize = previewSizes.get(previewSizes.size() * 4 / 5);
-        camWidth = previewSize.width;
-        camHeight = previewSize.height;
-        ready = true;
-        p.setPreviewSize(camWidth, camHeight);
-        angleOfView = p.getVerticalViewAngle();
-        int orientation = display.getOrientation();
-        if (orientation == 0) {
-            camera.setDisplayOrientation(90);
+            p.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            p.setPreviewSize(camWidth, camHeight);
+            angleOfView = p.getVerticalViewAngle();
+            int orientation = display.getOrientation();
+            if (orientation == 0) {
+                camera.setDisplayOrientation(90);
+            }
+            if (orientation == 3) {
+                camera.setDisplayOrientation(180);
+            }
+            camera.setParameters(p);
+            try {
+                camera.setPreviewDisplay(holder);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            camera.startPreview();
         }
-        if (orientation == 3) {
-            camera.setDisplayOrientation(180);
-        }
-        camera.setParameters(p);
-        try {
-            camera.setPreviewDisplay(holder);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-        camera.startPreview();
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        camera.stopPreview();
-        camera.release();
-        camera = null;
+        releaseCamera();
+    }
+
+    public void createCamera() {
+        camera = getCamera();
+        Runnable theRunnable = new Runnable() {
+            @Override
+            public void run() {
+                while (camera == null);
+                Camera.Parameters p = camera.getParameters();
+                List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
+                Camera.Size previewSize = previewSizes.get(0);
+                camWidth = previewSize.width;
+                camHeight = previewSize.height;
+            }
+        };
+        Thread waitThread = new Thread(theRunnable);
+        waitThread.start();
+    }
+
+    public void releaseCamera() {
+        if (camera != null) {
+            camera.stopPreview();
+            camera.release();
+            camera = null;
+            ready = false;
+        }
+    }
+
+    public void startTheCamera() {
+        Runnable theRunnable = new Runnable() {
+            @Override
+            public void run() {
+                while (camera == null);
+                camera.startPreview();
+            }
+        };
+        Thread waitThread = new Thread(theRunnable);
+        waitThread.start();
     }
 }

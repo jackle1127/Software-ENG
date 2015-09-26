@@ -98,21 +98,21 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
             Matrix.rotateM(tempMatrix, 0, 180, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
         }
         gl.glMultMatrixf(tempMatrix, 0);
-        gl.glTranslatef(0, -2f, 0);
+        gl.glTranslatef(0, -5f, 0);
         gl.glPushMatrix();
-        gl.glTranslatef(0, 0, -6f);
+        gl.glTranslatef(0, 0, -16f);
         mCube.draw(gl);
         gl.glPopMatrix();
         gl.glPushMatrix();
-        gl.glTranslatef(0, 3f, -6f);
+        gl.glTranslatef(0, 3f, -16f);
         mCube.draw(gl);
         gl.glPopMatrix();
         gl.glPushMatrix();
-        gl.glTranslatef(0, 0, 6f);
+        gl.glTranslatef(0, 0, 16f);
         mCube.draw(gl);
         gl.glPopMatrix();
         gl.glPushMatrix();
-        gl.glTranslatef(5f, 0, 0);
+        gl.glTranslatef(15f, 0, 0);
         mCube.draw(gl);
         gl.glPopMatrix();
         gl.glPushMatrix();
