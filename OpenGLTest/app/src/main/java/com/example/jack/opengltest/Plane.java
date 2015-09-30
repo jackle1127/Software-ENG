@@ -15,6 +15,7 @@ public class Plane {
     private FloatBuffer textureBuffer;
     private int[] textures = new int[1];
     Bitmap theBitmap;
+    boolean updateTexture = false;
     private float[] vertices = {
             -1.0f, 0,  1.0f,
             -1.0f, 0, -1.0f,
@@ -44,18 +45,25 @@ public class Plane {
         theBitmap = bm;
     }
 
-    void loadGlTexture(GL10 gl, Context context) {
+    void loadGlTexture(GL10 gl) {
+        Bitmap newTexture = theBitmap.copy(Bitmap.Config.ARGB_8888, false);
         gl.glGenTextures(1, textures, 0);
         gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
         gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
         gl.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
 
-        GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, theBitmap, 0);
-        theBitmap.recycle();
+        GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, newTexture, 0);
+        newTexture.recycle();
     }
 
     void draw(GL10 gl) {
+        if (updateTexture) {
+            try {
+                loadGlTexture(gl);
+            }catch (Exception e){}
+            updateTexture = false;
+        }
         gl.glBindTexture(GL10.GL_TEXTURE_2D, textures[0]);
 
         gl.glEnable(GL10.GL_BLEND);

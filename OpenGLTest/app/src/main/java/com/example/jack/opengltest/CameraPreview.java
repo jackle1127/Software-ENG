@@ -15,6 +15,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     float angleOfView = -1.0f;
     boolean ready = false;
     Display display;
+    static int cameraQuality = 0;
+    int numOfCam = -1;
 
     public CameraPreview(Context context, Display ds) {
         super(context);
@@ -39,7 +41,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         if (camera != null) {
             Camera.Parameters p = camera.getParameters();
             List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-            Camera.Size previewSize = previewSizes.get(previewSizes.size() * 4 / 5);
+            numOfCam = previewSizes.size();
+            Setting.numOfCam = previewSizes.size();
+            Camera.Size previewSize = previewSizes.get(cameraQuality);
             camWidth = previewSize.width;
             camHeight = previewSize.height;
 
@@ -65,6 +69,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         releaseCamera();
+        ready = false;
     }
 
     public void createCamera() {
@@ -89,10 +94,31 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             camera.stopPreview();
             camera.release();
             camera = null;
-            ready = false;
         }
     }
 
+    public void changeCameraConfig() {
+        if (camera != null) {
+            camera.stopPreview();
+            Camera.Parameters p = camera.getParameters();
+            List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
+            Camera.Size previewSize = previewSizes.get(cameraQuality);
+            camWidth = previewSize.width;
+            camHeight = previewSize.height;
+            p.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            p.setPreviewSize(camWidth, camHeight);
+            angleOfView = p.getVerticalViewAngle();
+            int orientation = display.getOrientation();
+            if (orientation == 0) {
+                camera.setDisplayOrientation(90);
+            }
+            if (orientation == 3) {
+                camera.setDisplayOrientation(180);
+            }
+            camera.setParameters(p);
+            camera.startPreview();
+        }
+    }
     public void startTheCamera() {
         Runnable theRunnable = new Runnable() {
             @Override

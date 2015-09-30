@@ -6,13 +6,24 @@ import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 import android.opengl.Matrix;
 
+import java.util.Arrays;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
+    /* 1 = 1m
+     * Distance from ground: 1.8m
+     * Map m/px = 0.19
+     * Map size = 1200 x 1200
+     */
+    float MAP_SIZE = 1200;
+    float meterPerPixel = 1.0f;
+    float mapScale = 100;
+    float DISTANCE_FROM_GROUND = 10.8f;
+    float[] rotationMatrix = new float[16];
+    float[] tempRotationMatrix = new float[16];
     private Cube mCube = new Cube();
-//    private Cube2 mCube2 = new Cube2();
-//    private Axes axes = new Axes();
     private Plane ground;
     float x = 0;
     float y = 0;
@@ -26,6 +37,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     float currentFov = 45.0f;
     int globalWidth = 1;
     int globalHeight = 1;
+    int camWidth = 1;
+    int camHeight = 1;
+    boolean gyroMode = false;
 
     OpenGLRenderer(Context context, Bitmap bm) {
         this.context = context;
@@ -34,8 +48,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     }
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        ground.loadGlTexture(gl, this.context);
-
+        ground.loadGlTexture(gl);
         gl.glEnable(GL10.GL_TEXTURE_2D);
         gl.glShadeModel(GL10.GL_SMOOTH);
         gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -49,14 +62,15 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     public void updateGround(Bitmap newBitmap) {
         groundBitmap = newBitmap;
-        ground = new Plane(groundBitmap);
+        ground.theBitmap = newBitmap;
+        ground.updateTexture = true;
     }
     public void calibrate(float[] matrix) {
         float difference = 0;
         for (int i = 0; i < matrix.length; i++) {
             difference += Math.abs(matrix[i] - anchorMatrix[i]);
         }
-        if (difference > .4f) {
+        if (difference > .4f || !gyroMode && difference > .2) {
             for (int i = 0; i < matrix.length; i++) {
                 anchorMatrix[i] = matrix[i];
             }
@@ -64,26 +78,17 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     }
 
     public void rotate () {
-        Matrix.rotateM(anchorMatrix, 0, x, anchorMatrix[0], anchorMatrix[4], anchorMatrix[8]);
-        Matrix.rotateM(anchorMatrix, 0, y, anchorMatrix[1], anchorMatrix[5], anchorMatrix[9]);
-        Matrix.rotateM(anchorMatrix, 0, z, anchorMatrix[2], anchorMatrix[6], anchorMatrix[10]);
+        if (gyroMode) {
+            Matrix.rotateM(anchorMatrix, 0, x, anchorMatrix[0], anchorMatrix[4], anchorMatrix[8]);
+            Matrix.rotateM(anchorMatrix, 0, y, anchorMatrix[1], anchorMatrix[5], anchorMatrix[9]);
+            Matrix.rotateM(anchorMatrix, 0, z, anchorMatrix[2], anchorMatrix[6], anchorMatrix[10]);
+        }
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
         if (angleOfView != currentFov) {
-            gl.glViewport(0, 0, globalWidth, globalHeight);
-            gl.glMatrixMode(GL10.GL_PROJECTION);
-            gl.glLoadIdentity();
-            if (angleOfView > 0) currentFov = angleOfView;
-            if (orientation == 1 || orientation == 3) {
-                GLU.gluPerspective(gl, currentFov * (float) globalHeight / (float) globalWidth,
-                        (float) globalWidth / (float) globalHeight, 0.1f, 100.0f);
-            } else {
-                GLU.gluPerspective(gl, currentFov, (float) globalWidth / (float) globalHeight, 0.1f, 100.0f);
-            }
-            gl.glViewport(0, 0, globalWidth, globalHeight);
-            gl.glMatrixMode(GL10.GL_MODELVIEW);
+            changeFocalLength(gl);
         }
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
         gl.glLoadIdentity();
@@ -97,8 +102,10 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         } else if (orientation == 2) {
             Matrix.rotateM(tempMatrix, 0, 180, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
         }
+        MainActivity.log = "\n" + anchorMatrix[0] + "; " + anchorMatrix[1] + "; " + anchorMatrix[2]
+                + "\n" + tempMatrix[0] + "; " + tempMatrix[1] + "; " + tempMatrix[2];
         gl.glMultMatrixf(tempMatrix, 0);
-        gl.glTranslatef(0, -5f, 0);
+        gl.glTranslatef(0, -DISTANCE_FROM_GROUND, 0);
         gl.glPushMatrix();
         gl.glTranslatef(0, 0, -16f);
         mCube.draw(gl);
@@ -117,24 +124,39 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glPopMatrix();
         gl.glPushMatrix();
         gl.glTranslatef(0, -1f, 0);
-        gl.glScalef(23.0f, 1.0f, 23.0f);
+        gl.glScalef(mapScale, 1.0f, mapScale);
         ground.draw(gl);
         gl.glPopMatrix();
 
         gl.glLoadIdentity();
+    }
+    private void changeFocalLength(GL10 gl) {
+        gl.glViewport(0, 0, globalWidth, globalHeight);
+        gl.glMatrixMode(GL10.GL_PROJECTION);
+        gl.glLoadIdentity();
+        if (angleOfView > 0) currentFov = angleOfView;
+        if (orientation == 1 || orientation == 3) {
+            GLU.gluPerspective(gl, currentFov * (float) camHeight / (float) camWidth,
+                    (float) globalWidth / (float) globalHeight, 0.1f, 100.0f);
+        } else {
+            GLU.gluPerspective(gl, currentFov, (float) globalWidth / (float) globalHeight, 0.1f, 100.0f);
+        }
+        gl.glViewport(0, 0, globalWidth, globalHeight);
+        gl.glMatrixMode(GL10.GL_MODELVIEW);
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         globalWidth = width;
         globalHeight = height;
-        gl.glViewport(0, 0, width, height);
-        gl.glMatrixMode(GL10.GL_PROJECTION);
-        gl.glLoadIdentity();
-        if (angleOfView > 0) currentFov = angleOfView;
-        GLU.gluPerspective(gl, currentFov, (float) width / (float) height, 0.1f, 100.0f);
-        gl.glViewport(0, 0, width, height);
-        gl.glMatrixMode(GL10.GL_MODELVIEW);
-        gl.glLoadIdentity();
+        changeFocalLength(gl);
+    }
+
+    private void rotateMatrix(float[] who, float[] whichTemp, float degree, float rx, float ry, float rz) {
+        for (int i = 0; i < tempRotationMatrix.length; i++) {
+            tempRotationMatrix[i] = who[i];
+        }
+        Matrix.setRotateM(whichTemp, 0, degree, rx, ry, rz);
+        Matrix.multiplyMM(who, 0, tempRotationMatrix, 0, rotationMatrix, 0);
     }
 }
