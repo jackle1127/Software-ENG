@@ -15,8 +15,11 @@ public class Setting extends AppCompatActivity {
 
     static boolean useGyro = true;
     static int cameraQuality = 0;
+    static float distanceFromGround = 19.5f;
     TextView cameraText;
+    TextView heightText;
     SeekBar cameraBar;
+    SeekBar distanceBar;
     static int numOfCam = 0;
     boolean instantiated = false;
     @Override
@@ -24,7 +27,9 @@ public class Setting extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
         cameraText = (TextView) findViewById(R.id.cameraText);
+        heightText = (TextView) findViewById(R.id.heightText);
         cameraBar = (SeekBar) findViewById(R.id.cameraQuality);
+        distanceBar = (SeekBar) findViewById(R.id.distanceBar);
         cameraBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
@@ -44,9 +49,32 @@ public class Setting extends AppCompatActivity {
 
             }
         });
+        distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                if (instantiated) {
+                    distanceFromGround = distanceBar.getProgress() / 10;
+                    heightText.setText("Distance from ground: " + distanceFromGround);
+                    OpenGLRenderer.distanceFromGround = distanceFromGround;
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
         CheckBox gyroCheckBox = (CheckBox) findViewById(R.id.gyroCheckBox);
         cameraBar.setMax(numOfCam - 1);
         cameraBar.setProgress(cameraBar.getMax() - cameraQuality);
+        distanceBar.setProgress((int) (distanceFromGround * 10));
+        heightText.setText("Distance from ground: " + distanceFromGround);
         changeQualityText();
         gyroCheckBox.setChecked(useGyro);
         gyroCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {

@@ -17,13 +17,11 @@ import android.location.LocationManager;
 import android.opengl.GLSurfaceView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Layout;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout.LayoutParams;
@@ -36,10 +34,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.util.LinkedList;
+
 public class MainActivity extends AppCompatActivity {
     int ZOOM_LEVEL = 20;
+    int NUMBER_OF_GRAVITY_DATA = 15;
     float meterPerPixel = 1.0f;
-    float lastX = 0, lastY = 0;
     long gyroStartTime;
     long calibrationStartTime = 0;
     SensorManager sensorManager;
@@ -51,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
     OpenGLRenderer theRenderer;
     boolean gyroMode = true;
     float dx, dy, dz;
+    LinkedList<Float>[] gravityAccumulativeList = new LinkedList[3];
+    float[] gravityAccumulation = new float[3];
     float[] anchorMatrix = new float[16];
     float[] anchorVectorX = new float[3];
     float[] anchorVectorY = new float[3];
@@ -58,8 +60,8 @@ public class MainActivity extends AppCompatActivity {
     float[] magneticVector = new float[3];
     float[] gravityVector = new float[3];
     float[] tempVector = new float[3];
-    double prevLat = 0;
-    double prevLng = 0;
+    double prevLat = 33.7523778;
+    double prevLng = -84.38681 ;
     WindowManager windowManager;
     Display display;
     Bitmap groundImg;
@@ -77,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initializeMap();
+        for (int i = 0; i < gravityAccumulativeList.length; i++) {
+            gravityAccumulativeList[i] = new LinkedList<>();
+        }
         glView = new GLSurfaceView(this);
         BitmapFactory.Options opt = new BitmapFactory.Options();
         opt.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -92,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         magneticSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         tempSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
 
@@ -133,8 +138,6 @@ public class MainActivity extends AppCompatActivity {
         rl.addView(mapImage, rlp);
         addContentView(rl, new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-
-
     }
 
     View.OnClickListener settingClicked = new View.OnClickListener() {
@@ -149,21 +152,6 @@ public class MainActivity extends AppCompatActivity {
     View.OnTouchListener onTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
-//            switch (motionEvent.getAction()) {
-//                case MotionEvent.ACTION_DOWN:
-//                    lastX = motionEvent.getX();
-//                    lastY = motionEvent.getY();
-//                    break;
-//                case MotionEvent.ACTION_MOVE:
-//                    float currentX = motionEvent.getX();
-//                    float currentY = motionEvent.getY();
-//                    dy = -(currentX - lastX) / 4;
-//                    dx = -(currentY - lastY) / 4;
-//                    dz = 0;
-//                    lastX = currentX;
-//                    lastY = currentY;
-//                    glRotate();
-//            }
             updateMap();
             return true;
         }
@@ -294,8 +282,16 @@ public class MainActivity extends AppCompatActivity {
     public SensorEventListener gravityListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            for (int i = 0; i < gravityVector.length; i++) {
-                gravityVector[i] = -sensorEvent.values[i];
+            for (int i = 0; i < gravityAccumulativeList.length; i++) {
+                gravityAccumulativeList[i].add(-sensorEvent.values[i]);
+                gravityAccumulation[i] += -sensorEvent.values[i];
+            }
+            if (gravityAccumulativeList[0].size() > NUMBER_OF_GRAVITY_DATA) {
+                for (int i = 0; i < gravityAccumulativeList.length; i++) {
+                    gravityAccumulation[i] -= gravityAccumulativeList[i].getFirst();
+                    gravityAccumulativeList[i].removeFirst();
+                    gravityVector[i] = gravityAccumulation[i] / NUMBER_OF_GRAVITY_DATA;
+                }
             }
             calibrate();
         }

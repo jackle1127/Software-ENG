@@ -20,7 +20,7 @@
             android:name="com.google.android.gms.maps.SupportMapFragment"
             android:id="@+id/map"
             tools:context=".MainActivity"
-            map:liteMode="true"
+            map:liteMode="false"
         />
     </FrameLayout>
 

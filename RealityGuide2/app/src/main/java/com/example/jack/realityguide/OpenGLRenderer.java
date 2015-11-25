@@ -1,10 +1,13 @@
-package com.example.jack.opengltest;
+package com.example.jack.realityguide;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 import android.opengl.Matrix;
+import android.view.Display;
+import android.view.SurfaceView;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -14,39 +17,27 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
      * Map m/px = 0.19
      * Map size = 1200 x 1200
      */
-    float MAP_SIZE = 1200;
-    float meterPerPixel = 1.0f;
-    float mapScale = 100;
-    static float distanceFromGround = 19.5f;
     float[] rotationMatrix = new float[16];
     float[] tempRotationMatrix = new float[16];
-    private Cube mCube = new Cube();
-    private Plane ground;
     float x = 0;
     float y = 0;
     float z = 0;
     float[] anchorMatrix = new float[16];
     float[] tempMatrix = new float[16];
+    float currentFov = 45.0f;
     int orientation = 0;
     Context context;
-    Bitmap groundBitmap;
-    Axes axes = new Axes();
-    float angleOfView = -1.0f;
-    float currentFov = 45.0f;
     int globalWidth = 1;
     int globalHeight = 1;
     int camWidth = 1;
     int camHeight = 1;
     boolean gyroMode = false;
 
-    OpenGLRenderer(Context context, Bitmap bm) {
+    public OpenGLRenderer(Context context) {
         this.context = context;
-        groundBitmap = bm;
-        ground = new Plane(groundBitmap);
     }
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        ground.loadGlTexture(gl);
         gl.glEnable(GL10.GL_TEXTURE_2D);
         gl.glShadeModel(GL10.GL_SMOOTH);
         gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -58,11 +49,6 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         Matrix.setIdentityM(anchorMatrix, 0);
     }
 
-    public void updateGround(Bitmap newBitmap) {
-        groundBitmap = newBitmap;
-        ground.theBitmap = newBitmap;
-        ground.updateTexture = true;
-    }
     public void calibrate(float[] matrix) {
         float difference = 0;
         for (int i = 0; i < matrix.length; i++) {
@@ -85,7 +71,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        if (angleOfView != currentFov) {
+        if (Settings.angleOfView != currentFov) {
             changeFocalLength(gl);
         }
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
@@ -100,44 +86,16 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         } else if (orientation == 2) {
             Matrix.rotateM(tempMatrix, 0, 180, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
         }
-        MainActivity.log = "\n" + anchorMatrix[0] + "; " + anchorMatrix[1] + "; " + anchorMatrix[2]
-                + "\n" + tempMatrix[0] + "; " + tempMatrix[1] + "; " + tempMatrix[2];
-        gl.glMultMatrixf(tempMatrix, 0);
-        gl.glTranslatef(0, -distanceFromGround, 0);
-        gl.glPushMatrix();
-        gl.glTranslatef(0, 0, -16f);
-        mCube.draw(gl);
-        gl.glPopMatrix();
-        gl.glPushMatrix();
-        gl.glTranslatef(0, 3f, -16f);
-        mCube.draw(gl);
-        gl.glPopMatrix();
-        gl.glPushMatrix();
-        gl.glTranslatef(0, 0, 16f);
-        mCube.draw(gl);
-        gl.glPopMatrix();
-        gl.glPushMatrix();
-        gl.glTranslatef(15f, 0, 0);
-        mCube.draw(gl);
-        gl.glPopMatrix();
-        gl.glPushMatrix();
-        gl.glTranslatef(0, -1f, 0);
-        gl.glScalef(mapScale, 1.0f, mapScale);
-        ground.draw(gl);
-        gl.glPopMatrix();
-        gl.glLoadIdentity();
-        gl.glPushMatrix();
-        gl.glTranslatef(0, 0, -2.0f);
-        gl.glMultMatrixf(tempMatrix, 0);
-        axes.draw(gl);
-        gl.glPopMatrix();
+
     }
+
     private void changeFocalLength(GL10 gl) {
         gl.glViewport(0, 0, globalWidth, globalHeight);
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
-        if (angleOfView > 0) currentFov = angleOfView;
-        float distance = (float) Math.sqrt(mapScale * mapScale / 4 + distanceFromGround * distanceFromGround);
+        if (Settings.angleOfView > 0) currentFov = Settings.angleOfView;
+        float distance = (float) Math.sqrt(Settings.mapScale * Settings.mapScale / 4
+                + Settings.distanceFromGround * Settings.distanceFromGround);
         if (orientation == 1 || orientation == 3) {
             GLU.gluPerspective(gl, currentFov * (float) camHeight / (float) camWidth,
                     (float) globalWidth / (float) globalHeight, 0.1f, distance);
