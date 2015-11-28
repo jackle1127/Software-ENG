@@ -1,12 +1,18 @@
 package com.example.jack.realityguide;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Point;
 import android.text.Html;
 import android.text.Spanned;
+
+import com.google.android.gms.maps.model.LatLng;
 
 public class MathFunctions {
     protected static Spanned expColor(String text, int offset, double exp, int color1, int color2) {
         String result = "";
-        int length = text.length() / 2;
         int r1 = color1 >>> 16 & 0xFF;
         int g1 = color1 >>> 8 & 0xFF;
         int b1 = color1 & 0xFF;
@@ -70,5 +76,31 @@ public class MathFunctions {
                         vector[1] * vector[1] +
                         vector[2] * vector[2]
         );
+    }
+
+    protected static CartesianLocation getLocationFromLatLng(LatLng latLng) {
+        CartesianLocation result = new CartesianLocation();
+        result.z = (float) (2 * Math.PI * Settings.EARTH_RADIUS *
+                (latLng.latitude - Settings.currentLat) / 360);
+        result.x = (float) (2 * Math.PI * Settings.EARTH_RADIUS * Math.cos(latLng.latitude) *
+                (latLng.longitude - Settings.currentLon) / 360);
+        return result;
+    }
+
+    protected static double[] getProjection(CartesianLocation location) {
+        double[] result = new double[2];
+
+        return result;
+    }
+    protected static Bitmap testLabel(String toWrite) {
+        Bitmap result = Bitmap.createBitmap(40, 40, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(result);
+        canvas.drawColor(0xFF4499FF);
+        Paint paint = new Paint();
+        paint.setTextSize(10);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFF112244);
+        canvas.drawText(toWrite, 17, 20, paint);
+        return result;
     }
 }

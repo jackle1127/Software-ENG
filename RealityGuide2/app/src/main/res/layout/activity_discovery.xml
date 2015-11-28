@@ -9,6 +9,21 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context=".DiscoveryActivity"
     android:id="@+id/mainLayout">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="More >>>>>"
+        android:id="@+id/lblMore"
+        android:alpha=".8"
+        android:textSize="30sp"
+        android:clickable="true"
+        android:enabled="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
     <fragment
         android:layout_width="100dp"
         android:layout_height="100dp"
@@ -19,39 +34,15 @@
         android:layout_alignParentEnd="true"
         />
 
-    <TextView
+    <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="More >>>>>"
-        android:id="@+id/lblMore"
-        android:alpha=".8"
-        android:textSize="30dp"
-        android:clickable="true"
-        android:enabled="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
-
-    <SeekBar
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/sbrZoom"
-        android:minWidth="100dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:max="18"
-        android:indeterminate="false" />
-
-    <SurfaceView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/surfaceView"
-        android:layout_alignRight="@+id/googleMaps"
-        android:layout_alignEnd="@+id/googleMaps"
+        android:id="@+id/imgMapOverlay"
         android:layout_alignTop="@+id/googleMaps"
         android:layout_alignLeft="@+id/googleMaps"
-        android:layout_alignStart="@+id/googleMaps"
-        android:layout_alignParentBottom="true" />
+        android:layout_alignBottom="@+id/googleMaps"
+        android:layout_alignEnd="@+id/googleMaps"
+        android:layout_alignRight="@+id/googleMaps"
+        android:layout_alignStart="@+id/googleMaps" />
+
 </RelativeLayout>

@@ -31,24 +31,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         if (camera != null) {
-            Camera.Parameters p = camera.getParameters();
-            List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-            Settings.numberOfCameras = previewSizes.size();
-            Camera.Size previewSize = previewSizes.get(Settings.cameraQuality);
-            Settings.camWidth = previewSize.width;
-            Settings.camHeight = previewSize.height;
-
-            p.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            p.setPreviewSize(Settings.camWidth, Settings.camHeight);
-            Settings.angleOfView = p.getVerticalViewAngle();
-            int orientation = Settings.display.getOrientation();
-            if (orientation == 0) {
-                camera.setDisplayOrientation(90);
-            }
-            if (orientation == 3) {
-                camera.setDisplayOrientation(180);
-            }
-            camera.setParameters(p);
+            setConfigs();
             try {
                 camera.setPreviewDisplay(holder);
             } catch (Exception e) {
@@ -56,6 +39,33 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             }
             camera.startPreview();
         }
+    }
+
+    public void changeCameraConfig() {
+        if (camera != null) {
+            camera.stopPreview();
+            setConfigs();
+            camera.startPreview();
+        }
+    }
+
+    private void setConfigs() {
+        Camera.Parameters p = camera.getParameters();
+        List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
+        Camera.Size previewSize = previewSizes.get(Settings.cameraQuality);
+        Settings.numberOfCameras = previewSizes.size();
+        Settings.camWidth = previewSize.width;
+        Settings.camHeight = previewSize.height;
+        p.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        p.setPreviewSize(Settings.camWidth, Settings.camHeight);
+        Settings.angleOfView = p.getVerticalViewAngle();
+        int orientation = Settings.display.getRotation();
+        if (orientation == 1) {
+            camera.setDisplayOrientation(0);
+        } else if (orientation == 3) {
+            camera.setDisplayOrientation(180);
+        }
+        camera.setParameters(p);
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -68,12 +78,23 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Runnable theRunnable = new Runnable() {
             @Override
             public void run() {
-                while (camera == null);
-                Camera.Parameters p = camera.getParameters();
-                List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-                Camera.Size previewSize = previewSizes.get(0);
-                Settings.camWidth = previewSize.width;
-                Settings.camHeight = previewSize.height;
+                long timeElapsed = System.currentTimeMillis();
+                boolean valid = true;
+                while (camera == null) {
+                    if ((System.currentTimeMillis() - timeElapsed) % 400 < 150)
+                        System.out.println("lookings fo cam");
+                    if (System.currentTimeMillis() - timeElapsed > 1500) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    Camera.Parameters p = camera.getParameters();
+                    List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
+                    Camera.Size previewSize = previewSizes.get(0);
+                    Settings.camWidth = previewSize.width;
+                    Settings.camHeight = previewSize.height;
+                }
             }
         };
         Thread waitThread = new Thread(theRunnable);
@@ -85,29 +106,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             camera.stopPreview();
             camera.release();
             camera = null;
-        }
-    }
-
-    public void changeCameraConfig() {
-        if (camera != null) {
-            camera.stopPreview();
-            Camera.Parameters p = camera.getParameters();
-            List<Camera.Size> previewSizes = p.getSupportedPreviewSizes();
-            Camera.Size previewSize = previewSizes.get(Settings.cameraQuality);
-            Settings.camWidth = previewSize.width;
-            Settings.camHeight = previewSize.height;
-            p.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-            p.setPreviewSize(Settings.camWidth, Settings.camHeight);
-            Settings.angleOfView = p.getVerticalViewAngle();
-            int orientation = Settings.display.getOrientation();
-            if (orientation == 0) {
-                camera.setDisplayOrientation(90);
-            }
-            if (orientation == 3) {
-                camera.setDisplayOrientation(180);
-            }
-            camera.setParameters(p);
-            camera.startPreview();
+            System.out.println("release");
         }
     }
 

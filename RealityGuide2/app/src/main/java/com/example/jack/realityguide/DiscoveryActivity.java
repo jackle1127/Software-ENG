@@ -3,23 +3,31 @@ package com.example.jack.realityguide;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.opengl.GLSurfaceView;
+import android.view.Surface;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.SeekBar;
+import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -31,10 +39,10 @@ public class DiscoveryActivity extends AppCompatActivity {
     CameraPreview cameraPreview;
     SensorsController sensorsController;
     long calibrationStartTime = 0;
-    boolean gyroMode = true;
     Timer timer = new Timer();
     int lblMoreAnimationOffset = 0;
     GoogleMap googleMap;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +50,9 @@ public class DiscoveryActivity extends AppCompatActivity {
         Settings.display = getWindowManager().getDefaultDisplay();
         Settings.sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         Settings.locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Settings.apiKey = getString(R.string.google_maps_key);
+        Settings.serverKey = getString(R.string.google_server_key);
+        Settings.resources = getResources();
         sensorsController = new SensorsController(calibrationRunnable,
                 rotateRunnable, locationChange);
 
@@ -52,11 +63,11 @@ public class DiscoveryActivity extends AppCompatActivity {
         glSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
         glSurfaceView.setRenderer(openGLRenderer);
         cameraPreview = new CameraPreview(this);
-        addContentView(cameraPreview, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT));
         addContentView(glSurfaceView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT));
-        ((TextView)findViewById(R.id.lblMore)).setOnClickListener(new View.OnClickListener() {
+        addContentView(cameraPreview, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT));
+        findViewById(R.id.lblMore).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 startActivity(new Intent(currentContext, MenuActivity.class));
@@ -82,24 +93,13 @@ public class DiscoveryActivity extends AppCompatActivity {
         }, 0, 120);
         setUpMap();
         locationChange.run();
-        ((SeekBar) findViewById(R.id.sbrZoom)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Settings.mapZoom = 19 - (float) (progress / 4);
-                locationChange.run();
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-        ((SeekBar) findViewById(R.id.sbrZoom)).setProgress(19 - (int) Settings.mapZoom);
+        Settings.mapOverlay = Bitmap.createBitmap(200, 200,
+                Bitmap.Config.ARGB_8888);
+        Settings.mapOverlayCanvas = new Canvas(Settings.mapOverlay);
+        Settings.mapOverlayPaint = new Paint();
+        Settings.mapOverlapPath = new Path();
+        Settings.mapOverlapPath.setFillType(Path.FillType.EVEN_ODD);
+        ((ImageView) findViewById(R.id.imgMapOverlay)).setImageBitmap(Settings.mapOverlay);
     }
 
     public Runnable rotateRunnable = new Runnable() {
@@ -115,16 +115,46 @@ public class DiscoveryActivity extends AppCompatActivity {
         @Override
         public void run() {
             long currentTime = System.currentTimeMillis();
-            if (currentTime - calibrationStartTime > 700 || !gyroMode) {
+            if (currentTime - calibrationStartTime > 700 || !Settings.gyroMode) {
                 openGLRenderer.calibrate(sensorsController.matrix);
                 resizeCameraView();
+                calibrationStartTime = currentTime;
+            }
+
+            // Runs whenever sensor updates to draw the V on the map
+            float x = sensorsController.vectorZ[0];
+            float y = sensorsController.vectorZ[1];
+            if (Settings.display.getRotation() == Surface.ROTATION_270) x = -x;
+            if (x * x + y * y > 0) {
+                double angle = Math.atan2(y, x) + Math.PI / 2;
+                Point center = new Point(Settings.mapOverlay.getWidth() / 2,
+                        Settings.mapOverlay.getHeight() / 2);
+                Point v1 = new Point(center.x - (int) (Math.cos(angle - .3) * 1000)
+                        , center.y - (int) (Math.sin(angle - .3) * 1000));
+                Point v2 = new Point(center.x - (int) (Math.cos(angle + .3) * 1000)
+                        , center.y - (int) (Math.sin(angle + .3) * 1000));
+                Settings.mapOverlayCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                Settings.mapOverlayPaint.setColor(0x992266FF);
+                Settings.mapOverlayPaint.setStrokeWidth(3);
+                Settings.mapOverlapPath.rewind();
+                Settings.mapOverlapPath.moveTo(center.x, center.y);
+                Settings.mapOverlapPath.lineTo(v1.x, v1.y);
+                Settings.mapOverlapPath.lineTo(v2.x, v2.y);
+                Settings.mapOverlapPath.close();
+                Settings.mapOverlayCanvas.drawPath(Settings.mapOverlapPath,
+                        Settings.mapOverlayPaint);
+                ((ImageView) findViewById(R.id.imgMapOverlay)).setImageBitmap(Settings.mapOverlay);
             }
         }
     };
     public Runnable locationChange = new Runnable() {
         @Override
         public void run() {
-            if (googleMap != null) {
+            if (googleMap != null){
+                if (Math.abs(Settings.prevLat - Settings.currentLat) +
+                        Math.abs(Settings.prevLon - Settings.currentLon) > .0001) {
+                    queryGooglePlaces();
+                }
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                         new LatLng(Settings.currentLat, Settings.currentLon), Settings.mapZoom));
                 googleMap.getUiSettings().setAllGesturesEnabled(false);
@@ -135,6 +165,39 @@ public class DiscoveryActivity extends AppCompatActivity {
         }
     };
 
+    private void queryGooglePlaces() {
+        if (Settings.placesReady) {
+            Settings.prevLat = Settings.currentLat;
+            Settings.prevLon = Settings.currentLon;
+            GooglePlacesQuery googlePlacesQuery = new GooglePlacesQuery();
+            googlePlacesQuery.execute(createDots);
+            Settings.placesReady = false;
+        }
+    }
+    public Runnable createDots = new Runnable() {
+        @Override
+        public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    googleMap.clear();
+                    for (Post newDot: Settings.latLngs) {
+                        MarkerOptions options = new MarkerOptions();
+                        options.position(newDot.getLatLng());
+                        //options.icon(BitmapDescriptorFactory.fromResource(R.drawable.poimarker));
+                        options.icon(BitmapDescriptorFactory.fromBitmap(newDot.getContent()));
+                        googleMap.addMarker(options.flat(true));
+                    }
+                    googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                        @Override
+                        public boolean onMarkerClick(Marker marker) {
+                            return true;
+                        }
+                    });
+                }
+            });
+        }
+    };
     private void resizeCameraView() {
         if (Settings.camWidth > 0 && Settings.camHeight > 0) {
             int width, height;
@@ -175,6 +238,7 @@ public class DiscoveryActivity extends AppCompatActivity {
                     findFragmentById(R.id.googleMaps)).getMap();
             googleMap.setBuildingsEnabled(false);
             googleMap.setTrafficEnabled(true);
+            googleMap.setOnMarkerClickListener(null);
         }
     }
 
@@ -186,11 +250,26 @@ public class DiscoveryActivity extends AppCompatActivity {
         cameraPreview.changeCameraConfig();
         cameraPreview.startTheCamera();
         sensorsController.registerSensors();
+        queryGooglePlaces();
     }
 
     public void onDestroy() {
+        releaseStuff();
+        super.onDestroy();
+    }
+
+    public void onPause() {
+        releaseStuff();
+        super.onPause();
+    }
+
+    public void onStop() {
+        releaseStuff();
+        super.onStop();
+    }
+
+    private void releaseStuff() {
         cameraPreview.releaseCamera();
         sensorsController.unregisterSensors();
-        super.onDestroy();
     }
 }

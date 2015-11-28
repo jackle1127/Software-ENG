@@ -1,37 +1,26 @@
 package com.example.jack.realityguide;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 import android.opengl.Matrix;
-import android.view.Display;
-import android.view.SurfaceView;
+import android.view.Surface;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
-    /* 1 = 1m
-     * Distance from ground: 1.8m
-     * Map m/px = 0.19
-     * Map size = 1200 x 1200
-     */
-    float[] rotationMatrix = new float[16];
-    float[] tempRotationMatrix = new float[16];
     float x = 0;
     float y = 0;
     float z = 0;
     float[] anchorMatrix = new float[16];
     float[] tempMatrix = new float[16];
     float currentFov = 45.0f;
-    int orientation = 0;
     Context context;
     int globalWidth = 1;
     int globalHeight = 1;
     int camWidth = 1;
     int camHeight = 1;
-    boolean gyroMode = false;
 
     public OpenGLRenderer(Context context) {
         this.context = context;
@@ -54,7 +43,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         for (int i = 0; i < matrix.length; i++) {
             difference += Math.abs(matrix[i] - anchorMatrix[i]);
         }
-        if (difference > .4f || !gyroMode && difference > .15) {
+        if (difference > .4f || !Settings.gyroMode && difference > .15) {
             for (int i = 0; i < matrix.length; i++) {
                 anchorMatrix[i] = matrix[i];
             }
@@ -62,7 +51,7 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
     }
 
     public void rotate () {
-        if (gyroMode) {
+        if (Settings.gyroMode) {
             Matrix.rotateM(anchorMatrix, 0, x, anchorMatrix[0], anchorMatrix[4], anchorMatrix[8]);
             Matrix.rotateM(anchorMatrix, 0, y, anchorMatrix[1], anchorMatrix[5], anchorMatrix[9]);
             Matrix.rotateM(anchorMatrix, 0, z, anchorMatrix[2], anchorMatrix[6], anchorMatrix[10]);
@@ -79,14 +68,22 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         for (int i = 0; i < anchorMatrix.length; i++) {
             tempMatrix[i] = anchorMatrix[i];
         }
-        if (orientation == 1) {
-            Matrix.rotateM(tempMatrix, 0, 90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
-        } else if (orientation == 3) {
-            Matrix.rotateM(tempMatrix, 0, -90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
-        } else if (orientation == 2) {
-            Matrix.rotateM(tempMatrix, 0, 180, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
-        }
 
+        if (Settings.display.getRotation() == Surface.ROTATION_90) {
+            Matrix.rotateM(tempMatrix, 0, 90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
+        } else if (Settings.display.getRotation() == Surface.ROTATION_270) {
+            Matrix.rotateM(tempMatrix, 0, -90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
+        }
+        gl.glMultMatrixf(tempMatrix, 0);
+        for (int i = 0; i < Settings.latLngs.size(); i++) {
+            Post post = Settings.latLngs.get(i);
+            if (!post.textured) post.createTexture(gl);
+            gl.glPushMatrix();
+            gl.glTranslatef(-post.getLocation().x, 0, -post.getLocation().z);
+            gl.glScalef(2.5f, 2.5f, 2.5f);
+            post.draw(gl);
+            gl.glPopMatrix();
+        }
     }
 
     private void changeFocalLength(GL10 gl) {
@@ -94,9 +91,9 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         if (Settings.angleOfView > 0) currentFov = Settings.angleOfView;
-        float distance = (float) Math.sqrt(Settings.mapScale * Settings.mapScale / 4
-                + Settings.distanceFromGround * Settings.distanceFromGround);
-        if (orientation == 1 || orientation == 3) {
+        float distance = 200;
+        if (Settings.display.getRotation() == Surface.ROTATION_90
+                || Settings.display.getRotation() == Surface.ROTATION_270) {
             GLU.gluPerspective(gl, currentFov * (float) camHeight / (float) camWidth,
                     (float) globalWidth / (float) globalHeight, 0.1f, distance);
         } else {
@@ -111,13 +108,5 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         globalWidth = width;
         globalHeight = height;
         changeFocalLength(gl);
-    }
-
-    private void rotateMatrix(float[] who, float[] whichTemp, float degree, float rx, float ry, float rz) {
-        for (int i = 0; i < tempRotationMatrix.length; i++) {
-            tempRotationMatrix[i] = who[i];
-        }
-        Matrix.setRotateM(whichTemp, 0, degree, rx, ry, rz);
-        Matrix.multiplyMM(who, 0, tempRotationMatrix, 0, rotationMatrix, 0);
     }
 }

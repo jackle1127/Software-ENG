@@ -29,41 +29,46 @@ public class SettingActivity extends AppCompatActivity {
         ((ToggleButton) findViewById(R.id.tglGyroscope)).setChecked(Settings.gyroMode);
         ((ToggleButton) findViewById(R.id.tglGyroscope)).setOnCheckedChangeListener(
                 new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                Settings.gyroMode = b;
-                saveSettings();
-            }
-        });
+                    @Override
+                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                        Settings.gyroMode = b;
+                        saveSettings();
+                    }
+                });
         if (Settings.numberOfCameras >= 0) {
             ((SeekBar) findViewById(R.id.sbrCameraQuality)).setMax(Settings.numberOfCameras - 1);
             ((SeekBar) findViewById(R.id.sbrCameraQuality)).setProgress(
                     Settings.numberOfCameras - 1 - Settings.cameraQuality);
+            changeCamQuality((SeekBar) findViewById(R.id.sbrCameraQuality),
+                    ((SeekBar) findViewById(R.id.sbrCameraQuality)).getProgress());
         }
         ((SeekBar) findViewById(R.id.sbrCameraQuality)).setOnSeekBarChangeListener(
                 new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                Settings.cameraQuality = Settings.numberOfCameras - 1 - i;
-                ((TextView) findViewById(R.id.txtCamQuality)).setText("Camera Quality: " + (i + 1));
-                saveSettings();
-            }
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                        changeCamQuality(seekBar, i);
+                    }
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
 
-            }
+                    }
 
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
 
-            }
-        });
-
-        ((TextView) findViewById(R.id.txtCamQuality)).setText("Camera Quality: " +
-                (((SeekBar) findViewById(R.id.sbrCameraQuality)).getProgress() + 1));
+                    }
+                });
     }
 
+    private void changeCamQuality(SeekBar seekBar, int i) {
+        Settings.cameraQuality = Settings.numberOfCameras - 1 - i;
+        String toShow = "Camera Quality: " + (i + 1);
+        if (i == seekBar.getMax()) toShow += " Slowest";
+        if (i == 0) toShow += " Fastest";
+        ((TextView) findViewById(R.id.txtCamQuality)).setText(toShow);
+        saveSettings();
+    }
     private void saveSettings() {
         SharedPreferences.Editor edit =
                 getSharedPreferences(Settings.PREFERENCES_NAME, MODE_PRIVATE).edit();
