@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.Context;
 import android.content.Intent;
@@ -6,13 +6,16 @@ import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-public class SettingActivity extends AppCompatActivity {
+import com.augmentedcoders.realityguide.R;
+
+public class ActivitySettings extends AppCompatActivity {
     final Context currentContext = this;
 
     @Override
@@ -22,7 +25,7 @@ public class SettingActivity extends AppCompatActivity {
         findViewById(R.id.btnOk).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(currentContext, MenuActivity.class));
+                startActivity(new Intent(currentContext, ActivityMenu.class));
                 saveSettings();
             }
         });
@@ -59,6 +62,41 @@ public class SettingActivity extends AppCompatActivity {
 
                     }
                 });
+        RadioGroup locations = (RadioGroup) findViewById(R.id.rgrpLocation);
+        for (int i = 0; i < locations.getChildCount(); i++) {
+            RadioButton location = (RadioButton) locations.getChildAt(i);
+            location.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    if (b) {
+                        String label = compoundButton.getText().toString();
+                        char lastChar = label.charAt(label.length() - 1);
+                        if (lastChar >= '0' && lastChar <= '9') {
+                            Settings.mockLocation = lastChar - '0' - 1;
+                        } else {
+                            Settings.mockLocation = -1;
+                        }
+
+                        if (Settings.mockLocation == 0) {
+                            Settings.currentLat = Settings.MOCK_1.latitude;
+                            Settings.currentLon = Settings.MOCK_1.longitude;
+                        } else if (Settings.mockLocation == 1) {
+                            Settings.currentLat = Settings.MOCK_2.latitude;
+                            Settings.currentLon = Settings.MOCK_2.longitude;
+                        } else if (Settings.mockLocation == 2) {
+                            Settings.currentLat = Settings.MOCK_3.latitude;
+                            Settings.currentLon = Settings.MOCK_3.longitude;
+                        }
+
+                        System.out.println(Settings.mockLocation);
+                        saveSettings();
+                    }
+                }
+            });
+        }
+        if (Settings.mockLocation >= 0) {
+            ((RadioButton) locations.getChildAt(Settings.mockLocation)).setChecked(true);
+        }
     }
 
     private void changeCamQuality(SeekBar seekBar, int i) {
@@ -74,6 +112,7 @@ public class SettingActivity extends AppCompatActivity {
                 getSharedPreferences(Settings.PREFERENCES_NAME, MODE_PRIVATE).edit();
         edit.putBoolean("gyroMode", Settings.gyroMode);
         edit.putInt("cameraQuality", Settings.cameraQuality);
+        edit.putInt("mockLocation", Settings.mockLocation);
         edit.putString("settingSaved", "saved");
         System.out.println("saved!!!!!");
         edit.commit();

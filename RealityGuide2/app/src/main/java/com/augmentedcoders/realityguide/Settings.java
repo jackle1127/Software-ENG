@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -12,12 +12,8 @@ import android.view.Display;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Settings {
-    // Constants
-    protected static final String PREFERENCES_NAME = "RG_PREFS";
-    protected static final float EARTH_RADIUS = 6371000;
     // Common objects
     protected static Display display;
     protected static LocationManager locationManager;
@@ -32,8 +28,8 @@ public class Settings {
     protected static float angleOfView = -1.0f;
     protected static int numberOfCameras = -1;
     protected static int cameraQuality = 0;
-    protected static double currentLat = 33.7523778;
-    protected static double currentLon = -84.38681;
+    protected static double currentLat = 33.7508001;
+    protected static double currentLon = -84.3858811;
     protected static double prevLat = 0;
     protected static double prevLon = 0;
     protected static float mapZoom = 17;
@@ -43,9 +39,26 @@ public class Settings {
     protected static Paint mapOverlayPaint;
     protected static Path mapOverlapPath;
     protected static boolean placesReady = true;
-    protected static ArrayList<Post> latLngs = new ArrayList();
+    protected static boolean postReady = true;
+    protected static ArrayList<CommunityPost> communityPosts = new ArrayList();
+    protected static ArrayList<PointOfInterestPost> pointOfInterestPosts = new ArrayList();
+    protected static int postID = 1;
+    protected static float[] anchorMatrix = new float[16];
+    protected static Post selectedPost = null;
 
+    protected static int mockLocation = -1;
     // Common settings (changeable by users)
     protected static boolean gyroMode = true;
-    protected static float distanceFromGround = 19.5f;
+
+    // Constants
+    protected static final String PREFERENCES_NAME = "RG_PREFS";
+    protected static final float EARTH_RADIUS = 6371000;
+    protected static final float QUERY_RADIUS = 40;
+    protected static final float POST_SIZE_MULTIPLIER = 2;
+    protected static final float POST_ANGLE_MULTIPLIER = 30;
+    protected static final float MINIMUM_DISTANCE = 6;
+    protected static final LatLng MOCK_1 = new LatLng(33.7513646, -84.3854675);
+    protected static final LatLng MOCK_2 = new LatLng(33.7512475, -84.3855815);
+    protected static final LatLng MOCK_3 = new LatLng(33.7515549, -84.3856433);
+
 }

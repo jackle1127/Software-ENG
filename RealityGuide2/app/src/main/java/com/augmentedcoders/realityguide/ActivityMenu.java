@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +11,10 @@ import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.view.ViewGroup.LayoutParams;
-public class MenuActivity extends AppCompatActivity {
+
+import com.augmentedcoders.realityguide.R;
+
+public class ActivityMenu extends AppCompatActivity {
     final Context currentContext = this;
 
     @Override
@@ -56,10 +59,10 @@ public class MenuActivity extends AppCompatActivity {
                 Intent toSwitch = null;
                 switch (command) {
                     case "Advanced Settings":
-                        toSwitch = new Intent(currentContext, SettingActivity.class);
+                        toSwitch = new Intent(currentContext, ActivitySettings.class);
                         break;
                     case "<<":
-                        toSwitch = new Intent(currentContext, DiscoveryActivity.class);
+                        toSwitch = new Intent(currentContext, ActivityDiscovery.class);
                         break;
                 }
                 if (toSwitch != null) {

@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -10,18 +10,15 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class OpenGLRenderer implements GLSurfaceView.Renderer {
-    float x = 0;
-    float y = 0;
-    float z = 0;
-    float[] anchorMatrix = new float[16];
-    float[] tempMatrix = new float[16];
+    float rX = 0;
+    float rY = 0;
+    float rZ = 0;
     float currentFov = 45.0f;
     Context context;
     int globalWidth = 1;
     int globalHeight = 1;
-    int camWidth = 1;
-    int camHeight = 1;
 
+    Axes axes = new Axes();
     public OpenGLRenderer(Context context) {
         this.context = context;
     }
@@ -35,26 +32,26 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glDepthFunc(GL10.GL_LEQUAL);
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
                 GL10.GL_NICEST);
-        Matrix.setIdentityM(anchorMatrix, 0);
+        Matrix.setIdentityM(Settings.anchorMatrix, 0);
     }
 
     public void calibrate(float[] matrix) {
         float difference = 0;
         for (int i = 0; i < matrix.length; i++) {
-            difference += Math.abs(matrix[i] - anchorMatrix[i]);
+            difference += Math.abs(matrix[i] - Settings.anchorMatrix[i]);
         }
-        if (difference > .4f || !Settings.gyroMode && difference > .15) {
+        if (difference > 1.0f || !Settings.gyroMode && difference > .08) {
             for (int i = 0; i < matrix.length; i++) {
-                anchorMatrix[i] = matrix[i];
+                Settings.anchorMatrix[i] = matrix[i];
             }
         }
     }
 
     public void rotate () {
         if (Settings.gyroMode) {
-            Matrix.rotateM(anchorMatrix, 0, x, anchorMatrix[0], anchorMatrix[4], anchorMatrix[8]);
-            Matrix.rotateM(anchorMatrix, 0, y, anchorMatrix[1], anchorMatrix[5], anchorMatrix[9]);
-            Matrix.rotateM(anchorMatrix, 0, z, anchorMatrix[2], anchorMatrix[6], anchorMatrix[10]);
+            Matrix.rotateM(Settings.anchorMatrix, 0, rX, Settings.anchorMatrix[0], Settings.anchorMatrix[4], Settings.anchorMatrix[8]);
+            Matrix.rotateM(Settings.anchorMatrix, 0, rY, Settings.anchorMatrix[1], Settings.anchorMatrix[5], Settings.anchorMatrix[9]);
+            Matrix.rotateM(Settings.anchorMatrix, 0, rZ, Settings.anchorMatrix[2], Settings.anchorMatrix[6], Settings.anchorMatrix[10]);
         }
     }
 
@@ -65,36 +62,44 @@ public class OpenGLRenderer implements GLSurfaceView.Renderer {
         }
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
         gl.glLoadIdentity();
-        for (int i = 0; i < anchorMatrix.length; i++) {
-            tempMatrix[i] = anchorMatrix[i];
+        gl.glMultMatrixf(Settings.anchorMatrix, 0);
+        for (int i = 0; i < Settings.pointOfInterestPosts.size(); i++) {
+            drawPost(gl, Settings.pointOfInterestPosts.get(i));
         }
+        for (int i = 0; i < Settings.communityPosts.size(); i++) {
+            drawPost(gl, Settings.communityPosts.get(i));
+        }
+        gl.glLoadIdentity();
+//        gl.glPushMatrix();
+//        gl.glTranslatef(0, 0, -4);
+//        gl.glMultMatrixf(anchorMatrix, 0);
+//        gl.glScalef(3.5f, 3.5f, 3.5f);
+//        axes.draw(gl);
+//        gl.glPopMatrix();
+    }
 
-        if (Settings.display.getRotation() == Surface.ROTATION_90) {
-            Matrix.rotateM(tempMatrix, 0, 90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
-        } else if (Settings.display.getRotation() == Surface.ROTATION_270) {
-            Matrix.rotateM(tempMatrix, 0, -90, tempMatrix[2], tempMatrix[6], tempMatrix[10]);
-        }
-        gl.glMultMatrixf(tempMatrix, 0);
-        for (int i = 0; i < Settings.latLngs.size(); i++) {
-            Post post = Settings.latLngs.get(i);
-            if (!post.textured) post.createTexture(gl);
+    private void drawPost(GL10 gl, Post post) {
+        if (!post.textured) post.createTexture(gl);
+        if (post.getProjection()[1] > Settings.MINIMUM_DISTANCE) {
             gl.glPushMatrix();
-            gl.glTranslatef(-post.getLocation().x, 0, -post.getLocation().z);
-            gl.glScalef(2.5f, 2.5f, 2.5f);
+            gl.glRotatef(post.getProjection()[0], 0, 1.0f, 0);
+            gl.glRotatef(post.getProjection()[1] * Settings.POST_ANGLE_MULTIPLIER / 150, 1.0f, 0, 0);
+            gl.glTranslatef(0, 0, -post.getProjection()[1]);
+            gl.glScalef(Settings.POST_SIZE_MULTIPLIER,
+                    Settings.POST_SIZE_MULTIPLIER, Settings.POST_SIZE_MULTIPLIER);
             post.draw(gl);
             gl.glPopMatrix();
         }
     }
-
     private void changeFocalLength(GL10 gl) {
         gl.glViewport(0, 0, globalWidth, globalHeight);
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         if (Settings.angleOfView > 0) currentFov = Settings.angleOfView;
-        float distance = 200;
+        float distance = 600;
         if (Settings.display.getRotation() == Surface.ROTATION_90
                 || Settings.display.getRotation() == Surface.ROTATION_270) {
-            GLU.gluPerspective(gl, currentFov * (float) camHeight / (float) camWidth,
+            GLU.gluPerspective(gl, currentFov * (float) Settings.camHeight / (float) Settings.camWidth,
                     (float) globalWidth / (float) globalHeight, 0.1f, distance);
         } else {
             GLU.gluPerspective(gl, currentFov, (float) globalWidth / (float) globalHeight, 0.1f, distance);

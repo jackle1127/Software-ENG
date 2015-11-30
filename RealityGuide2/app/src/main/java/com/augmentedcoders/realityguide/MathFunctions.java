@@ -1,10 +1,8 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Point;
 import android.text.Html;
 import android.text.Spanned;
 
@@ -82,14 +80,16 @@ public class MathFunctions {
         CartesianLocation result = new CartesianLocation();
         result.z = (float) (2 * Math.PI * Settings.EARTH_RADIUS *
                 (latLng.latitude - Settings.currentLat) / 360);
-        result.x = (float) (2 * Math.PI * Settings.EARTH_RADIUS * Math.cos(latLng.latitude) *
+        result.x = (float) (2 * Math.PI * Settings.EARTH_RADIUS *
+                Math.cos(latLng.latitude * Math.PI / 180) *
                 (latLng.longitude - Settings.currentLon) / 360);
         return result;
     }
 
-    protected static double[] getProjection(CartesianLocation location) {
-        double[] result = new double[2];
-
+    protected static float[] getProjection(CartesianLocation location) {
+        float[] result = new float[2];
+        result[0] = (float) (-Math.atan2(location.x, location.z) * 180 / Math.PI);
+        result[1] = (float) (Math.sqrt(location.x * location.x + location.z * location.z));
         return result;
     }
     protected static Bitmap testLabel(String toWrite) {

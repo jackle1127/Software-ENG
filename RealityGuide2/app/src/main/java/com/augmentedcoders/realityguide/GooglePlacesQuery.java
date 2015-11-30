@@ -1,8 +1,8 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
-import android.os.AsyncTask;
+import android.graphics.BitmapFactory;
 
-import com.google.android.gms.maps.model.LatLng;
+import com.augmentedcoders.realityguide.R;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,13 +20,31 @@ public class GooglePlacesQuery {
         Runnable run = new Runnable() {
             @Override
             public void run() {
+                try {
+                    String dummy = "{\n" +
+                            "         \"id\" : \"14\",\n" +
+                            "         \"user\" : \"Jack the man\",\n" +
+                            "         \"content\" : \"Imma a potato ahhhhhhhhh\",\n" +
+                            "         \"lat\" : 33.7510001,\n" +
+                            "         \"lng\" : -84.3858811,\n" +
+                            "         \"ts\" : \"11/27/2030\"\n" +
+                            "      }";
+                    String likes =  "{\"likes\": [ \"park\", \"point_of_interest\", \"establishment\" ]}";
+                    JSONObject dummyObject = new JSONObject(dummy);
+                    JSONObject dummyLikes = new JSONObject(likes);
+                    String pic = "https://scontent.xx.fbcdn.net/hphotos-xtf1/v/t1.0-9/11254663_10207737724942539_3145118592722163480_n.jpg?oh=b661326c97e86a13e7f1a05ca2207487&oe=56DA00D9";
+                    CommunityPost newCom = new CommunityPost(dummyObject, dummyLikes, pic, null);
+                    Settings.communityPosts.add(newCom);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 InputStream inputStream = null;
                 HttpURLConnection http = null;
                 String result = "";
                 try {
                     String urlString = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
                     urlString += "location=" + Settings.currentLat + "," + Settings.currentLon;
-                    urlString += "&radius=50";
+                    urlString += "&radius=" + Settings.QUERY_RADIUS;
                     //urlString += "&types=restaurant";
                     urlString += "&key=" + Settings.serverKey;
                     urlString += "&sensor=true";
@@ -70,15 +88,13 @@ public class GooglePlacesQuery {
             Settings.placesReady = true;
             JSONObject jsonObject = new JSONObject(result);
             JSONArray jsonArray = jsonObject.getJSONArray("results");
-            Settings.latLngs.clear();
+            Settings.pointOfInterestPosts.clear();
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject newPlace = jsonArray.getJSONObject(i);
-                JSONObject location = newPlace.getJSONObject("geometry").getJSONObject("location");
-                Post newPost = new Post();
-                newPost.setContent(MathFunctions.testLabel(i + ""));
-                newPost.setLatLng(new LatLng(location.getDouble("lat"), location.getDouble("lng")));
-                Settings.latLngs.add(newPost);
-                System.out.println(newPost.getLocation().x + ", " + newPost.getLocation().z);
+                System.out.println("Adding " + newPlace.getString("name"));
+                PointOfInterestPost newPost = new PointOfInterestPost(newPlace, null);
+                Settings.pointOfInterestPosts.add(newPost);
+                System.out.println(i + " - " + newPost.getLocation().x + ", " + newPost.getLocation().z);
             }
             processResult.run();
         } catch (JSONException e) {

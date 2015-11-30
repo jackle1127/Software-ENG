@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.Context;
 import android.hardware.Camera;

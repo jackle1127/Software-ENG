@@ -1,13 +1,13 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Picture;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
@@ -16,11 +16,14 @@ import android.location.LocationManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.opengl.GLSurfaceView;
-import android.view.Surface;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.augmentedcoders.realityguide.R;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -32,10 +35,12 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class DiscoveryActivity extends AppCompatActivity {
+public class ActivityDiscovery extends AppCompatActivity {
     final Context currentContext = this;
     GLSurfaceView glSurfaceView;
     OpenGLRenderer openGLRenderer;
+    OpenGLTouchDetector openGLTouchDetector;
+    PixelBuffer pixelBufferTouchDetector;
     CameraPreview cameraPreview;
     SensorsController sensorsController;
     long calibrationStartTime = 0;
@@ -55,9 +60,9 @@ public class DiscoveryActivity extends AppCompatActivity {
         Settings.resources = getResources();
         sensorsController = new SensorsController(calibrationRunnable,
                 rotateRunnable, locationChange);
-
         setContentView(R.layout.activity_discovery);
         openGLRenderer = new OpenGLRenderer(this);
+        openGLTouchDetector = new OpenGLTouchDetector(this);
         glSurfaceView = new GLSurfaceView(this);
         glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
         glSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
@@ -70,7 +75,7 @@ public class DiscoveryActivity extends AppCompatActivity {
         findViewById(R.id.lblMore).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(new Intent(currentContext, MenuActivity.class));
+                startActivity(new Intent(currentContext, ActivityMenu.class));
             }
         });
         findViewById(R.id.mainLayout).bringToFront();
@@ -100,17 +105,51 @@ public class DiscoveryActivity extends AppCompatActivity {
         Settings.mapOverlapPath = new Path();
         Settings.mapOverlapPath.setFillType(Path.FillType.EVEN_ODD);
         ((ImageView) findViewById(R.id.imgMapOverlay)).setImageBitmap(Settings.mapOverlay);
+        final ImageView testImg = new ImageView(this);
+        addContentView(testImg, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT
+                , ViewGroup.LayoutParams.MATCH_PARENT));
+        pixelBufferTouchDetector = new PixelBuffer();
+        pixelBufferTouchDetector.setRenderer(openGLTouchDetector);
+        glSurfaceView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                int id = pixelBufferTouchDetector.getColor(x, y);
+                if (id > 0) {
+                    for (int i = 0; i < Settings.pointOfInterestPosts.size(); i++) {
+                        if (Settings.pointOfInterestPosts.get(i).getId() == id) {
+                            Settings.selectedPost = Settings.pointOfInterestPosts.get(i);
+                            startActivity(new Intent(currentContext, ActivityPlacesDetails.class));
+                            break;
+                        }
+                    }
+                    for (int i = 0; i < Settings.communityPosts.size(); i++) {
+                        if (Settings.communityPosts.get(i).getId() == id) {
+                            Settings.selectedPost = Settings.communityPosts.get(i);
+                            startActivity(new Intent(currentContext, ActivityCommunityPost.class));
+                            break;
+                        }
+                    }
+                } else {
+                    Settings.selectedPost = null;
+                }
+                return false;
+            }
+        });
     }
 
     public Runnable rotateRunnable = new Runnable() {
         @Override
         public void run() {
-            openGLRenderer.x = sensorsController.angularRotation[0];
-            openGLRenderer.y = sensorsController.angularRotation[1];
-            openGLRenderer.z = sensorsController.angularRotation[2];
+            openGLRenderer.rX = sensorsController.angularRotation[0];
+            openGLRenderer.rY = sensorsController.angularRotation[1];
+            openGLRenderer.rZ = sensorsController.angularRotation[2];
             openGLRenderer.rotate();
+            rotateCompass();
         }
     };
+
     public Runnable calibrationRunnable = new Runnable() {
         @Override
         public void run() {
@@ -120,33 +159,35 @@ public class DiscoveryActivity extends AppCompatActivity {
                 resizeCameraView();
                 calibrationStartTime = currentTime;
             }
-
-            // Runs whenever sensor updates to draw the V on the map
-            float x = sensorsController.vectorZ[0];
-            float y = sensorsController.vectorZ[1];
-            if (Settings.display.getRotation() == Surface.ROTATION_270) x = -x;
-            if (x * x + y * y > 0) {
-                double angle = Math.atan2(y, x) + Math.PI / 2;
-                Point center = new Point(Settings.mapOverlay.getWidth() / 2,
-                        Settings.mapOverlay.getHeight() / 2);
-                Point v1 = new Point(center.x - (int) (Math.cos(angle - .3) * 1000)
-                        , center.y - (int) (Math.sin(angle - .3) * 1000));
-                Point v2 = new Point(center.x - (int) (Math.cos(angle + .3) * 1000)
-                        , center.y - (int) (Math.sin(angle + .3) * 1000));
-                Settings.mapOverlayCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                Settings.mapOverlayPaint.setColor(0x992266FF);
-                Settings.mapOverlayPaint.setStrokeWidth(3);
-                Settings.mapOverlapPath.rewind();
-                Settings.mapOverlapPath.moveTo(center.x, center.y);
-                Settings.mapOverlapPath.lineTo(v1.x, v1.y);
-                Settings.mapOverlapPath.lineTo(v2.x, v2.y);
-                Settings.mapOverlapPath.close();
-                Settings.mapOverlayCanvas.drawPath(Settings.mapOverlapPath,
-                        Settings.mapOverlayPaint);
-                ((ImageView) findViewById(R.id.imgMapOverlay)).setImageBitmap(Settings.mapOverlay);
-            }
+            rotateCompass();
         }
     };
+
+    private void rotateCompass() {
+        float x = Settings.anchorMatrix[0];
+        float y = Settings.anchorMatrix[2];
+        if (x * x + y * y > 0) {
+            double angle = Math.atan2(y, x) + Math.PI / 2;
+            Point center = new Point(Settings.mapOverlay.getWidth() / 2,
+                    Settings.mapOverlay.getHeight() / 2);
+            double wideAngle = .7;
+            Point v1 = new Point(center.x + (int) (Math.cos(angle - wideAngle) * 1000)
+                    , center.y - (int) (Math.sin(angle - wideAngle) * 1000));
+            Point v2 = new Point(center.x + (int) (Math.cos(angle + wideAngle) * 1000)
+                    , center.y - (int) (Math.sin(angle + wideAngle) * 1000));
+            Settings.mapOverlayCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
+            Settings.mapOverlayPaint.setColor(0x992266FF);
+            Settings.mapOverlayPaint.setStrokeWidth(3);
+            Settings.mapOverlapPath.rewind();
+            Settings.mapOverlapPath.moveTo(center.x, center.y);
+            Settings.mapOverlapPath.lineTo(v1.x, v1.y);
+            Settings.mapOverlapPath.lineTo(v2.x, v2.y);
+            Settings.mapOverlapPath.close();
+            Settings.mapOverlayCanvas.drawPath(Settings.mapOverlapPath,
+                    Settings.mapOverlayPaint);
+            ((ImageView) findViewById(R.id.imgMapOverlay)).setImageBitmap(Settings.mapOverlay);
+        }
+    }
     public Runnable locationChange = new Runnable() {
         @Override
         public void run() {
@@ -159,6 +200,12 @@ public class DiscoveryActivity extends AppCompatActivity {
                         new LatLng(Settings.currentLat, Settings.currentLon), Settings.mapZoom));
                 googleMap.getUiSettings().setAllGesturesEnabled(false);
                 googleMap.getUiSettings().setIndoorLevelPickerEnabled(false);
+                for (int i = 0; i < Settings.pointOfInterestPosts.size(); i++) {
+                    Settings.pointOfInterestPosts.get(i).refreshLocation();
+                }
+                for (int i = 0; i < Settings.communityPosts.size(); i++) {
+                    Settings.communityPosts.get(i).refreshLocation();
+                }
             } else {
                 setUpMap();
             }
@@ -174,6 +221,10 @@ public class DiscoveryActivity extends AppCompatActivity {
             Settings.placesReady = false;
         }
     }
+
+    private void queryDatabase() {
+
+    }
     public Runnable createDots = new Runnable() {
         @Override
         public void run() {
@@ -181,11 +232,16 @@ public class DiscoveryActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     googleMap.clear();
-                    for (Post newDot: Settings.latLngs) {
+                    for (PointOfInterestPost newDot: Settings.pointOfInterestPosts) {
                         MarkerOptions options = new MarkerOptions();
                         options.position(newDot.getLatLng());
-                        //options.icon(BitmapDescriptorFactory.fromResource(R.drawable.poimarker));
-                        options.icon(BitmapDescriptorFactory.fromBitmap(newDot.getContent()));
+                        options.icon(BitmapDescriptorFactory.fromResource(R.drawable.poimarker));
+                        googleMap.addMarker(options.flat(true));
+                    }
+                    for (CommunityPost newDot: Settings.communityPosts) {
+                        MarkerOptions options = new MarkerOptions();
+                        options.position(newDot.getLatLng());
+                        options.icon(BitmapDescriptorFactory.fromResource(R.drawable.postmarker));
                         googleMap.addMarker(options.flat(true));
                     }
                     googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
@@ -198,6 +254,7 @@ public class DiscoveryActivity extends AppCompatActivity {
             });
         }
     };
+
     private void resizeCameraView() {
         if (Settings.camWidth > 0 && Settings.camHeight > 0) {
             int width, height;
@@ -228,6 +285,7 @@ public class DiscoveryActivity extends AppCompatActivity {
         String settingSaved = preferences.getString("settingSaved", null);
         if (settingSaved != null) {
             Settings.cameraQuality = preferences.getInt("cameraQuality", 0);
+            Settings.mockLocation = preferences.getInt("mockLocation", -1);
             Settings.gyroMode = preferences.getBoolean("gyroMode", true);
         }
     }
@@ -272,4 +330,5 @@ public class DiscoveryActivity extends AppCompatActivity {
         cameraPreview.releaseCamera();
         sensorsController.unregisterSensors();
     }
+
 }

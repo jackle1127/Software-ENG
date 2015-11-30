@@ -1,4 +1,4 @@
-package com.example.jack.realityguide;
+package com.augmentedcoders.realityguide;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -8,12 +8,10 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-
-import java.lang.reflect.Method;
-import java.util.LinkedList;
+import android.view.Surface;
 
 public class SensorsController {
-    private int NUMBER_OF_GRAVITY_DATA = 15;
+    //private int NUMBER_OF_GRAVITY_DATA = 7;
     private Sensor gyroSensor;
     private Sensor magneticSensor;
     private Sensor accelerometerSensor;
@@ -21,8 +19,6 @@ public class SensorsController {
     private Runnable calibrateRunnable;
     private Runnable rotatingRunnable;
     private Runnable locationChange;
-    private LinkedList<Float>[] gravityAccumulativeList = new LinkedList[3];
-    private float[] gravityAccumulation = new float[3];
     private float[] magneticVector = new float[3];
     private float[] gravityVector = new float[3];
     public float[] angularRotation = new float[3];
@@ -32,19 +28,16 @@ public class SensorsController {
     public float[] matrix = new float[16];
 
     SensorsController(Runnable cal, Runnable rot, Runnable loc) {
-        for (int i = 0; i < gravityAccumulativeList.length; i++) {
-            gravityAccumulativeList[i] = new LinkedList<>();
-        }
         calibrateRunnable = cal;
         rotatingRunnable = rot;
         locationChange = loc;
         gyroSensor = Settings.sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         magneticSensor = Settings.sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        accelerometerSensor = Settings.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        accelerometerSensor = Settings.sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
     }
 
     public void registerSensors() throws SecurityException {
-        Settings.sensorManager.registerListener(magneticListener, magneticSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        Settings.sensorManager.registerListener(magneticListener, magneticSensor, SensorManager.SENSOR_DELAY_FASTEST);
         Settings.sensorManager.registerListener(gravityListener, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
         Settings.sensorManager.registerListener(gyroListener, gyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
         Settings.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
@@ -71,15 +64,25 @@ public class SensorsController {
             matrix[i + 8] = vectorZ[i];
         }
         matrix[15] = 1;
-        if (gravityAccumulativeList[0].size() >= NUMBER_OF_GRAVITY_DATA) {
-            calibrateRunnable.run();
-        }
+        calibrateRunnable.run();
     }
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
             Settings.currentLat = location.getLatitude();
             Settings.currentLon = location.getLongitude();
+            if (Settings.mockLocation >= 0) {
+                if (Settings.mockLocation == 0) {
+                    Settings.currentLat = Settings.MOCK_1.latitude;
+                    Settings.currentLon = Settings.MOCK_1.longitude;
+                } else if (Settings.mockLocation == 1) {
+                    Settings.currentLat = Settings.MOCK_2.latitude;
+                    Settings.currentLon = Settings.MOCK_2.longitude;
+                } else if (Settings.mockLocation == 2) {
+                    Settings.currentLat = Settings.MOCK_3.latitude;
+                    Settings.currentLon = Settings.MOCK_3.longitude;
+                }
+            }
             locationChange.run();
         }
 
@@ -104,9 +107,13 @@ public class SensorsController {
             long currentTime = System.currentTimeMillis();
             if (gyroStartTime != 0) {
                 float deltaTime = (float)(currentTime - gyroStartTime) / 1000;
-                float valueX = sensorEvent.values[0];
-                float valueY = sensorEvent.values[1];
+                float valueX = -sensorEvent.values[1];
+                float valueY = sensorEvent.values[0];
                 float valueZ = sensorEvent.values[2];
+                if (Settings.display.getRotation() == Surface.ROTATION_270) {
+                    valueX = -valueX;
+                    valueY = -valueY;
+                }
                 angularRotation[0] = -(float) (valueX * 180 / Math.PI) * deltaTime;
                 angularRotation[1] = -(float) (valueY * 180 / Math.PI) * deltaTime;
                 angularRotation[2] = -(float) (valueZ * 180 / Math.PI) * deltaTime;
@@ -122,8 +129,14 @@ public class SensorsController {
     private SensorEventListener magneticListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            for (int i = 0; i < magneticVector.length; i++) {
-                magneticVector[i] = sensorEvent.values[i];
+            if (Settings.display.getRotation() == Surface.ROTATION_90) {
+                magneticVector[0] = -sensorEvent.values[1];
+                magneticVector[1] = sensorEvent.values[0];
+                magneticVector[2] = sensorEvent.values[2];
+            } else if (Settings.display.getRotation() == Surface.ROTATION_270) {
+                magneticVector[0] = sensorEvent.values[1];
+                magneticVector[1] = -sensorEvent.values[0];
+                magneticVector[2] = sensorEvent.values[2];
             }
         }
 
@@ -135,16 +148,14 @@ public class SensorsController {
     private SensorEventListener gravityListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            for (int i = 0; i < gravityAccumulativeList.length; i++) {
-                gravityAccumulativeList[i].add(-sensorEvent.values[i]);
-                gravityAccumulation[i] += -sensorEvent.values[i];
-            }
-            if (gravityAccumulativeList[0].size() > NUMBER_OF_GRAVITY_DATA) {
-                for (int i = 0; i < gravityAccumulativeList.length; i++) {
-                    gravityAccumulation[i] -= gravityAccumulativeList[i].getFirst();
-                    gravityAccumulativeList[i].removeFirst();
-                    gravityVector[i] = gravityAccumulation[i] / NUMBER_OF_GRAVITY_DATA;
-                }
+            if (Settings.display.getRotation() == Surface.ROTATION_90) {
+                gravityVector[0] = sensorEvent.values[1];
+                gravityVector[1] = -sensorEvent.values[0];
+                gravityVector[2] = -sensorEvent.values[2];
+            } else if (Settings.display.getRotation() == Surface.ROTATION_270) {
+                gravityVector[0] = -sensorEvent.values[1];
+                gravityVector[1] = sensorEvent.values[0];
+                gravityVector[2] = -sensorEvent.values[2];
             }
             calibrate();
         }
