@@ -71,7 +71,7 @@ public class SensorsController {
         public void onLocationChanged(Location location) {
             Settings.currentLat = location.getLatitude();
             Settings.currentLon = location.getLongitude();
-            if (Settings.mockLocation >= 0) {
+            /*if (Settings.mockLocation >= 0) {
                 if (Settings.mockLocation == 0) {
                     Settings.currentLat = Settings.MOCK_1.latitude;
                     Settings.currentLon = Settings.MOCK_1.longitude;
@@ -82,7 +82,7 @@ public class SensorsController {
                     Settings.currentLat = Settings.MOCK_3.latitude;
                     Settings.currentLon = Settings.MOCK_3.longitude;
                 }
-            }
+            }*/
             locationChange.run();
         }
 

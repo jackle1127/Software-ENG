@@ -39,7 +39,6 @@
             android:screenOrientation="sensorLandscape" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -58,6 +57,16 @@
             android:name=".ActivityCommunityPost"
             android:label="@string/title_activity_activity_community_post"
             android:theme="@style/AppTheme" >
+        </activity>
+        <activity
+            android:name=".ActivityNewPost"
+            android:label="@string/title_activity_activity_new_post" >
+        </activity>
+        <activity
+            android:name=".ActivityAccount"
+            android:label="@string/title_activity_activity_account" >
+        </activity>
+        <activity android:name=".ActivityUserLogin" >
         </activity>
     </application>
 

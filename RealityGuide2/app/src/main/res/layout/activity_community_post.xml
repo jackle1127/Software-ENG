@@ -12,9 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:id="@+id/txtBackPost"
+        android:id="@+id/txtNewPostBack"
         android:textColor="#000000"
-        android:inputType="textMultiLine"
         android:text="&lt;&lt;"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
@@ -27,7 +26,7 @@
         android:id="@+id/scrollView3"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_below="@+id/txtBackPost"
+        android:layout_below="@+id/txtNewPostBack"
         android:layout_above="@+id/relativeLayout">
 
         <LinearLayout
@@ -90,8 +89,8 @@
                             android:layout_marginLeft="10dp"
                             android:layout_alignParentBottom="true"
                             android:layout_alignParentTop="true"
-                            android:layout_toLeftOf="@+id/imgHear"
-                            android:layout_toStartOf="@+id/imgHear"
+                            android:layout_toLeftOf="@+id/imgHeart"
+                            android:layout_toStartOf="@+id/imgHeart"
                             android:layout_marginRight="10dp"
                             android:textAlignment="viewEnd"
                             android:gravity="end" />
@@ -99,7 +98,7 @@
                         <ImageView
                             android:layout_width="wrap_content"
                             android:layout_height="match_parent"
-                            android:id="@+id/imgHear"
+                            android:id="@+id/imgHeart"
                             android:src="@drawable/heart_medium"
                             android:layout_alignParentTop="true"
                             android:layout_alignParentRight="true"
@@ -117,21 +116,36 @@
                 android:id="@+id/txtContent"
                 android:textColor="#000000"
                 android:layout_marginTop="10dp"
-                android:inputType="textMultiLine" />
+                android:inputType="textMultiLine"
+                android:padding="10dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:id="@+id/textView6"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="15dp"
+                android:textColor="#999999"
+                android:textIsSelectable="false"
+                android:textSize="18dp"
+                android:text="Replies"
+                android:textAlignment="center" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="#333333"
-                android:layout_marginTop="20dp"
                 android:id="@+id/separator" />
 
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:id="@+id/layoutReplies"></LinearLayout>
+                android:id="@+id/layoutReplies"
+                android:paddingLeft="20dp"
+                android:paddingTop="10dp"
+                android:paddingRight="20dp"></LinearLayout>
 
         </LinearLayout>
     </ScrollView>
@@ -148,13 +162,13 @@
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:inputType="textCapSentences|textMultiLine"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/txtReply"
             android:layout_toLeftOf="@+id/btnReply"
             android:layout_alignBottom="@+id/btnReply"
             android:layout_alignParentTop="true"
             android:textColor="#000000"
-            android:inputType="textMultiLine"
             android:padding="5dp"
             android:background="#88AAFF"
             android:layout_marginRight="6dp"
@@ -174,6 +188,7 @@
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
             android:background="#00FFFFFF" />
+
     </RelativeLayout>
 
 </RelativeLayout>

@@ -165,13 +165,17 @@ public class Post {
             canvas.drawText(newText, bound.left, bound.top + textHeight, paint);
         } else {
             int y = textHeight;
-            for (int i = 0; i < text.length(); i++) {
-                if (paint.measureText(text, 0, i) >= bound.width() || i == text.length() - 1) {
+            for (int i = 0; i <= text.length(); i++) {
+                if (paint.measureText(text, 0, i) >= bound.width() || i == text.length() ||
+                        text.charAt(i) == '\n') {
+                    boolean newLine = false;
+                    if (i < text.length()) newLine = (text.charAt(i) == '\n');
                     canvas.drawText(text.substring(0, i), bound.left, bound.top + y,
                             paint);
                     y += textHeight;
                     text = text.substring(i);
                     i = -1;
+                    if (newLine) i = 0;
                     if (y > bound.height()) break;
                 }
             }

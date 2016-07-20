@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -13,6 +14,7 @@ import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
+import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.opengl.GLSurfaceView;
@@ -32,6 +34,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.InputStream;
+import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -47,6 +54,8 @@ public class ActivityDiscovery extends AppCompatActivity {
     Timer timer = new Timer();
     int lblMoreAnimationOffset = 0;
     GoogleMap googleMap;
+    boolean nothingTapped = true;
+    Timer databaseQueryTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +84,7 @@ public class ActivityDiscovery extends AppCompatActivity {
         findViewById(R.id.lblMore).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                nothingTapped = false;
                 startActivity(new Intent(currentContext, ActivityMenu.class));
             }
         });
@@ -120,6 +130,7 @@ public class ActivityDiscovery extends AppCompatActivity {
                     for (int i = 0; i < Settings.pointOfInterestPosts.size(); i++) {
                         if (Settings.pointOfInterestPosts.get(i).getId() == id) {
                             Settings.selectedPost = Settings.pointOfInterestPosts.get(i);
+                            nothingTapped = false;
                             startActivity(new Intent(currentContext, ActivityPlacesDetails.class));
                             break;
                         }
@@ -127,6 +138,8 @@ public class ActivityDiscovery extends AppCompatActivity {
                     for (int i = 0; i < Settings.communityPosts.size(); i++) {
                         if (Settings.communityPosts.get(i).getId() == id) {
                             Settings.selectedPost = Settings.communityPosts.get(i);
+                            nothingTapped = false;
+                            Settings.goBackToAccount = false;
                             startActivity(new Intent(currentContext, ActivityCommunityPost.class));
                             break;
                         }
@@ -137,6 +150,14 @@ public class ActivityDiscovery extends AppCompatActivity {
                 return false;
             }
         });
+        databaseQueryTimer = new Timer();
+        databaseQueryTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                queryDatabase();
+            }
+        }, 10000, 10000);
+        Settings.communityPosts.clear();
     }
 
     public Runnable rotateRunnable = new Runnable() {
@@ -194,7 +215,7 @@ public class ActivityDiscovery extends AppCompatActivity {
             if (googleMap != null){
                 if (Math.abs(Settings.prevLat - Settings.currentLat) +
                         Math.abs(Settings.prevLon - Settings.currentLon) > .0001) {
-                    queryGooglePlaces();
+                    queryBoth();
                 }
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                         new LatLng(Settings.currentLat, Settings.currentLon), Settings.mapZoom));
@@ -212,20 +233,94 @@ public class ActivityDiscovery extends AppCompatActivity {
         }
     };
 
+    private void queryBoth() {
+        queryGooglePlaces();
+        queryDatabase();
+    }
     private void queryGooglePlaces() {
         if (Settings.placesReady) {
+            Settings.placesReady = false;
             Settings.prevLat = Settings.currentLat;
             Settings.prevLon = Settings.currentLon;
             GooglePlacesQuery googlePlacesQuery = new GooglePlacesQuery();
-            googlePlacesQuery.execute(createDots);
-            Settings.placesReady = false;
+            googlePlacesQuery.execute(refreshMap);
         }
     }
 
     private void queryDatabase() {
-
+        if (Settings.postReady) {
+            Settings.postReady = false;
+            Thread separateThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String queriedPosts = DatabaseMethods.getRadius(0.0372823, Settings.currentLat,
+                            Settings.currentLon);
+                    try {
+                        if (queriedPosts != null && !queriedPosts.equals("null ")) {
+                            JSONArray postArray = new JSONArray(queriedPosts);
+                            for (int i = 0; i < postArray.length(); i++) {
+                                try {
+                                    String id = postArray.getJSONObject(i).getString("id");
+                                    boolean exist = false;
+                                    for (int j = 0; j < Settings.communityPosts.size(); j++) {
+                                        if (Settings.communityPosts.get(j).jsonContent.getString("id")
+                                                .equals(id)) {
+                                            exist = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exist) {
+                                        String username = postArray.getJSONObject(i).getString("user");
+                                        System.out.println("Getting likes for post " + id);
+                                        String queriedLikes = DatabaseMethods.getLIKES(id);
+                                        System.out.println("Getting user");
+                                        String user = DatabaseMethods.getUser(username);
+                                        JSONArray likes = new JSONArray();
+                                        if (!queriedLikes.equals("null ")) {
+                                            likes = new JSONArray(queriedLikes);
+                                        }
+                                        String pictureURL = "";
+                                        if (!user.equals("null ")) {
+                                            pictureURL = new JSONArray(user).getJSONObject(0).getString("photo");
+                                            pictureURL = "http://45.55.44.240/userPics/" + pictureURL + ".jpg";
+                                        }
+                                        CommunityPost newPost = new CommunityPost(postArray.getJSONObject(i),
+                                                likes, pictureURL, null);
+                                        Settings.communityPosts.add(newPost);
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            if (postArray.length() != Settings.communityPosts.size()) {
+                                for (int i = 0; i < Settings.communityPosts.size(); i++) {
+                                    boolean exist = false;
+                                    for (int j = 0; j < postArray.length(); j++) {
+                                        String currentId = postArray.getJSONObject(j).getString("id");
+                                        if (Settings.communityPosts.get(i).jsonContent.getString("id")
+                                                .equals(currentId)) {
+                                            exist = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!exist) {
+                                        Settings.communityPosts.remove(i);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    Settings.postReady = true;
+                    refreshMap.run();
+                }
+            });
+            separateThread.start();
+        }
     }
-    public Runnable createDots = new Runnable() {
+
+    public Runnable refreshMap = new Runnable() {
         @Override
         public void run() {
             runOnUiThread(new Runnable() {
@@ -285,7 +380,6 @@ public class ActivityDiscovery extends AppCompatActivity {
         String settingSaved = preferences.getString("settingSaved", null);
         if (settingSaved != null) {
             Settings.cameraQuality = preferences.getInt("cameraQuality", 0);
-            Settings.mockLocation = preferences.getInt("mockLocation", -1);
             Settings.gyroMode = preferences.getBoolean("gyroMode", true);
         }
     }
@@ -308,7 +402,7 @@ public class ActivityDiscovery extends AppCompatActivity {
         cameraPreview.changeCameraConfig();
         cameraPreview.startTheCamera();
         sensorsController.registerSensors();
-        queryGooglePlaces();
+        queryBoth();
     }
 
     public void onDestroy() {
@@ -318,6 +412,9 @@ public class ActivityDiscovery extends AppCompatActivity {
 
     public void onPause() {
         releaseStuff();
+        if (nothingTapped) {
+            startActivity(new Intent(this, ActivityMenu.class));
+        }
         super.onPause();
     }
 
@@ -329,6 +426,11 @@ public class ActivityDiscovery extends AppCompatActivity {
     private void releaseStuff() {
         cameraPreview.releaseCamera();
         sensorsController.unregisterSensors();
+        databaseQueryTimer.cancel();
+    }
+
+    @Override
+    public void onBackPressed() {
     }
 
 }

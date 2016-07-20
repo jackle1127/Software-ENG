@@ -9,6 +9,7 @@ import android.graphics.Rect;
 import com.augmentedcoders.realityguide.R;
 import com.google.android.gms.maps.model.LatLng;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.InputStream;
@@ -21,18 +22,18 @@ public class CommunityPost extends Post {
                     R.drawable.heart_small), 27, 27, false);
     public Bitmap iconPicture = null;
     protected JSONObject jsonContent;
-    protected JSONObject jsonLikes;
+    protected JSONArray jsonLikes;
     protected String pictureURL = "";
     public CommunityPost() {
         super();
     }
 
-    public CommunityPost(JSONObject content, JSONObject likes, String pic, Bitmap profile) {
+    public CommunityPost(JSONObject content, JSONArray likes, String pic, Bitmap profile) {
         super();
         setData(content, likes, pic, profile);
     }
 
-    public void setData(JSONObject content, JSONObject likes, String pic, Bitmap profile) {
+    public void setData(JSONObject content, JSONArray likes, String pic, Bitmap profile) {
         jsonContent = content;
         jsonLikes = likes;
         pictureURL = pic;
@@ -43,17 +44,20 @@ public class CommunityPost extends Post {
     }
 
     public void createIconFromURL (final String url) {
+        Bitmap iconBitmap = BitmapFactory.decodeResource(Settings.resources,
+                R.drawable.default_profile);
+        iconPicture = Bitmap.createScaledBitmap(iconBitmap, 86, 86, false);
         Thread separateThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                Bitmap iconBitmap = null;
                 try {
                     System.out.println("Loading icon for " + jsonContent.getString("user"));
-                    iconBitmap = BitmapFactory.decodeStream((InputStream) new URL(url).getContent());
-                    System.out.println("Loaded");
+                    Bitmap iconBitmap = BitmapFactory.decodeStream((InputStream) new URL(url).getContent());
                     iconPicture = Bitmap.createScaledBitmap(iconBitmap, 86, 86, false);
-                    textured = false;
+                    System.out.println("Loaded icon of " + jsonContent.getString("user"));
                     createContent();
+                    textured = false;
+                    return;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -77,7 +81,7 @@ public class CommunityPost extends Post {
             timeStamp = jsonContent.getString("ts");
             content = jsonContent.getString("content");
             likes = NumberFormat.getIntegerInstance()
-                    .format(jsonLikes.getJSONArray("likes").length());
+                    .format(jsonLikes.length());
             if (iconPicture == null) createIconFromURL(pictureURL);
         } catch (Exception e) {
             e.printStackTrace();
@@ -90,11 +94,11 @@ public class CommunityPost extends Post {
         canvas.drawRect(2, 2, 398, 198, paint);
 
         paint.setStyle(Paint.Style.FILL);
+        paint.setFilterBitmap(true);
         if (iconPicture != null) {
-            paint.setFilterBitmap(true);
             canvas.drawBitmap(iconPicture, 8, 8, paint);
-            canvas.drawBitmap(likeIcon, 102, 71, paint);
         }
+        canvas.drawBitmap(likeIcon, 102, 71, paint);
 
         paint.setTextSize(26);
         paint.setFakeBoldText(true);
@@ -118,5 +122,4 @@ public class CommunityPost extends Post {
 
         super.setContent(bmpContent);
     }
-
 }

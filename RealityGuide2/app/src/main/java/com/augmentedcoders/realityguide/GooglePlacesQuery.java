@@ -20,7 +20,7 @@ public class GooglePlacesQuery {
         Runnable run = new Runnable() {
             @Override
             public void run() {
-                try {
+                /*try {
                     String dummy = "{\n" +
                             "         \"id\" : \"14\",\n" +
                             "         \"user\" : \"Jack the man\",\n" +
@@ -37,7 +37,7 @@ public class GooglePlacesQuery {
                     Settings.communityPosts.add(newCom);
                 } catch (Exception e) {
                     e.printStackTrace();
-                }
+                }*/
                 InputStream inputStream = null;
                 HttpURLConnection http = null;
                 String result = "";
@@ -48,12 +48,12 @@ public class GooglePlacesQuery {
                     //urlString += "&types=restaurant";
                     urlString += "&key=" + Settings.serverKey;
                     urlString += "&sensor=true";
-                    System.out.println(urlString);
+//                    System.out.println(urlString);
                     URL url = new URL(urlString);
                     http = (HttpURLConnection) url.openConnection();
-                    System.out.println("opened");
+//                    System.out.println("opened");
                     http.connect();
-                    System.out.println("connected");
+//                    System.out.println("connected");
                     inputStream = http.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
                     StringBuffer stringBuffer = new StringBuffer();
@@ -84,17 +84,17 @@ public class GooglePlacesQuery {
 
     protected void done(Runnable processResult, String result) {
         try {
-            System.out.println(result);
+//            System.out.println(result);
             Settings.placesReady = true;
             JSONObject jsonObject = new JSONObject(result);
             JSONArray jsonArray = jsonObject.getJSONArray("results");
             Settings.pointOfInterestPosts.clear();
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject newPlace = jsonArray.getJSONObject(i);
-                System.out.println("Adding " + newPlace.getString("name"));
+//                System.out.println("Adding " + newPlace.getString("name"));
                 PointOfInterestPost newPost = new PointOfInterestPost(newPlace, null);
                 Settings.pointOfInterestPosts.add(newPost);
-                System.out.println(i + " - " + newPost.getLocation().x + ", " + newPost.getLocation().z);
+//                System.out.println(i + " - " + newPost.getLocation().x + ", " + newPost.getLocation().z);
             }
             processResult.run();
         } catch (JSONException e) {

@@ -49,17 +49,23 @@ public class OpenGLTouchDetector implements GLSurfaceView.Renderer{
     }
 
     private void drawPost(GL10 gl, Post post) {
-        if (!post.textured) post.createTexture(gl);
+        gl.glPushMatrix();
         if (post.getProjection()[1] > Settings.MINIMUM_DISTANCE) {
-            gl.glPushMatrix();
             gl.glRotatef(post.getProjection()[0], 0, 1.0f, 0);
             gl.glRotatef(post.getProjection()[1] * Settings.POST_ANGLE_MULTIPLIER / 150, 1.0f, 0, 0);
             gl.glTranslatef(0, 0, -post.getProjection()[1]);
             gl.glScalef(Settings.POST_SIZE_MULTIPLIER,
                     Settings.POST_SIZE_MULTIPLIER, Settings.POST_SIZE_MULTIPLIER);
             post.drawID(gl);
-            gl.glPopMatrix();
+        } else {
+            gl.glRotatef(post.getProjection()[0], 0, 1.0f, 0);
+            gl.glRotatef(80, 1.0f, 0, 0);
+            gl.glTranslatef(0, 0, -post.getProjection()[1] * 5);
+            gl.glScalef(Settings.POST_SIZE_MULTIPLIER,
+                    Settings.POST_SIZE_MULTIPLIER, Settings.POST_SIZE_MULTIPLIER);
+            post.drawID(gl);
         }
+        gl.glPopMatrix();
     }
 
     private void changeFocalLength(GL10 gl) {
@@ -67,7 +73,7 @@ public class OpenGLTouchDetector implements GLSurfaceView.Renderer{
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         if (Settings.angleOfView > 0) currentFov = Settings.angleOfView;
-        float distance = 600;
+        float distance = Settings.MAXIMUM_DISTANCE;
         if (Settings.display.getRotation() == Surface.ROTATION_90
                 || Settings.display.getRotation() == Surface.ROTATION_270) {
             GLU.gluPerspective(gl, currentFov * (float) Settings.camHeight / (float) Settings.camWidth,

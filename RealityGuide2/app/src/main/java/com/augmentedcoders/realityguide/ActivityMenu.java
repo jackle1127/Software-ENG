@@ -11,6 +11,8 @@ import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.augmentedcoders.realityguide.R;
 
@@ -19,32 +21,19 @@ public class ActivityMenu extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Display thisDisplay = getWindowManager().getDefaultDisplay();
-        float textSize = (float) Math.sqrt(thisDisplay.getWidth() * thisDisplay.getWidth() +
-                thisDisplay.getHeight() * thisDisplay.getHeight()) / 50;
-        String[] listItems = {"<<", "Post Something", "Account", "Advanced Settings",
-                "Logout"};
-        Button[] btnItem = new Button[listItems.length];
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
-        for (int i = 0; i < listItems.length; i++) {
-            String item = listItems[i];
-            btnItem[i] = new Button(this);
-            btnItem[i].setText(item);
-            btnItem[i].setTextSize(textSize);
-            btnItem[i].setTextColor(0xFF444444);
-            btnItem[i].setBackgroundColor(0xFFFFFFFF);
-            btnItem[i].setLayoutParams(new LayoutParams(
-                    LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-            btnItem[i].setOnTouchListener(itemClick);
-            LinearLayout linearLayout = (LinearLayout) findViewById(R.id.linItemList);
-            linearLayout.addView(btnItem[i]);
-            if (i < listItems.length - 1) {
-                View separator = new View(this);
-                separator.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 1));
-                separator.setBackgroundColor(0xFF333333);
-                linearLayout.addView(separator);
-            }
+        (findViewById(R.id.ltBack)).setOnTouchListener(itemClick);
+        (findViewById(R.id.ltPost)).setOnTouchListener(itemClick);
+        (findViewById(R.id.ltAccount)).setOnTouchListener(itemClick);
+        (findViewById(R.id.ltSettings)).setOnTouchListener(itemClick);
+        (findViewById(R.id.ltLogout)).setOnTouchListener(itemClick);
+        if (Settings.currentUser == null) {
+            ((LinearLayout) findViewById(R.id.linItemList)).removeView((findViewById(R.id.ltPost)));
+            ((LinearLayout) findViewById(R.id.linItemList)).removeView((findViewById(R.id.ltLogout)));
+            ((LinearLayout) findViewById(R.id.linItemList)).removeView((findViewById(R.id.separator0)));
+            ((LinearLayout) findViewById(R.id.linItemList)).removeView((findViewById(R.id.separator3)));
+            ((TextView)(((RelativeLayout) findViewById(R.id.ltAccount)).getChildAt(1))).setText("Login");
         }
     }
 
@@ -52,14 +41,27 @@ public class ActivityMenu extends AppCompatActivity {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                v.setBackgroundColor(0xFF9999FF);
+                v.setBackgroundColor(0xFF99BBFF);
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
                 v.setBackgroundColor(0xFFFFFFFF);
-                String command = ((Button) v).getText().toString();
+                String command = ((TextView) ((RelativeLayout) v).getChildAt(1)).getText().toString();
                 Intent toSwitch = null;
                 switch (command) {
                     case "Advanced Settings":
                         toSwitch = new Intent(currentContext, ActivitySettings.class);
+                        break;
+                    case "Post Something":
+                        toSwitch = new Intent(currentContext, ActivityNewPost.class);
+                        break;
+                    case "Account":
+                        toSwitch = new Intent(currentContext, ActivityAccount.class);
+                        break;
+                    case "Logout":
+                        Settings.currentUser = null;
+                        toSwitch = new Intent(currentContext, ActivityDiscovery.class);
+                        break;
+                    case "Login":
+                        toSwitch = new Intent(currentContext, ActivityUserLogin.class);
                         break;
                     case "<<":
                         toSwitch = new Intent(currentContext, ActivityDiscovery.class);
@@ -72,4 +74,10 @@ public class ActivityMenu extends AppCompatActivity {
             return true;
         }
     };
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        startActivity(new Intent(this, ActivityDiscovery.class));
+    }
 }

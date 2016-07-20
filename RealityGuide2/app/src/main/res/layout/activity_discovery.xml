@@ -16,7 +16,6 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="More >>>>>"
         android:id="@+id/lblMore"
-        android:alpha=".8"
         android:textSize="30sp"
         android:clickable="true"
         android:enabled="true"

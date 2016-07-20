@@ -41,9 +41,9 @@ public class PointOfInterestPost extends Post {
             public void run() {
                 Bitmap iconBitmap = null;
                 try {
-                    System.out.println("Loading icon for " + jsonContent.getString("name"));
+//                    System.out.println("Loading icon for " + jsonContent.getString("name"));
                     iconBitmap = BitmapFactory.decodeStream((InputStream) new URL(url).getContent());
-                    System.out.println("Loaded");
+//                    System.out.println("Loaded");
                     iconPicture = Bitmap.createScaledBitmap(iconBitmap, 105, 105, false);
                     textured = false;
                     createContent();
@@ -80,7 +80,7 @@ public class PointOfInterestPost extends Post {
                 hours = "Closed right now";
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
 
         canvas.drawColor(0xEE4499FF);

@@ -1,5 +1,7 @@
 package com.augmentedcoders.realityguide;
 
+import android.content.Context;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,7 +10,7 @@ import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
+import java.net.HttpURLConnection;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -46,7 +48,7 @@ public class DatabaseMethods {
 
 //    }
 
-    public static String readInputStream(URLConnection con) throws IOException {
+    public static String readInputStream(HttpURLConnection con) throws IOException {
         InputStream in = con.getInputStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(in));
         StringBuilder result = new StringBuilder();
@@ -60,7 +62,7 @@ public class DatabaseMethods {
     public static void getTime(int hr, int min, int d, double dis, double lat, double longi) {
         try {
             URL url = new URL("http://45.55.44.240/DatabasePHP/getTime.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             Date date = new Date();   // given date
@@ -112,7 +114,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/newPost.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -136,7 +138,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/getPosts.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -162,7 +164,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/deletePost.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -188,7 +190,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/deleteReply.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -214,7 +216,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/newReply.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -240,7 +242,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/createUser.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -265,7 +267,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/deleteUser.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -288,12 +290,12 @@ public class DatabaseMethods {
      * @param id
      * @return
      */
-    public static String getReplies(int id) {
+    public static String getReplies(String id) {
 
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/getReplies.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -327,7 +329,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/selectRadius.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -356,7 +358,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/getUserData.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
@@ -387,13 +389,13 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/authenticate_user.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             // activate the output
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             // send your parameters to your site
             ps.print("user=" + user);
-            ps.print("&userPass="+userPass);
+            ps.print("&userPass=" + userPass);
 
             // we have to get the input stream in order to actually send the request
             String s = readInputStream(con);
@@ -415,7 +417,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/posts_by_user.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             ps.print("user="+user);
@@ -435,7 +437,7 @@ public class DatabaseMethods {
         try {
             // open a connection to the site
             URL url = new URL("http://45.55.44.240/DatabasePHP/replies_by_user.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             ps.print("user="+user);
@@ -454,7 +456,7 @@ public class DatabaseMethods {
     public static void LIKEME(String id, String user) {
         try {
             URL url = new URL("http://45.55.44.240/DatabasePHP/addLIKE.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             String insert = "('"+ id + "' , '"+ user + "')";
@@ -465,18 +467,18 @@ public class DatabaseMethods {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-
         }
     }
 
     public static String getLIKES(String id) {
         try {
             URL url = new URL("http://45.55.44.240/DatabasePHP/getLIKES.php");
-            URLConnection con = url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setDoOutput(true);
             PrintStream ps = new PrintStream(con.getOutputStream());
             ps.print("id="+ id);
             String s = readInputStream(con);
+            System.out.println(s);
             ps.close();
             return s;
         } catch (MalformedURLException e) {

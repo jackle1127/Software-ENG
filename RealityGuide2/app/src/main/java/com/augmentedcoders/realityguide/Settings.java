@@ -20,6 +20,8 @@ public class Settings {
     protected static SensorManager sensorManager;
 
     // Common variables (unchangeable by users)
+    protected static String currentUser = null;
+    protected static Bitmap currentProfilePhoto;
     protected static Resources resources;
     protected static String apiKey;
     protected static String serverKey;
@@ -45,8 +47,7 @@ public class Settings {
     protected static int postID = 1;
     protected static float[] anchorMatrix = new float[16];
     protected static Post selectedPost = null;
-
-    protected static int mockLocation = -1;
+    protected static boolean goBackToAccount = false;
     // Common settings (changeable by users)
     protected static boolean gyroMode = true;
 
@@ -54,9 +55,10 @@ public class Settings {
     protected static final String PREFERENCES_NAME = "RG_PREFS";
     protected static final float EARTH_RADIUS = 6371000;
     protected static final float QUERY_RADIUS = 40;
-    protected static final float POST_SIZE_MULTIPLIER = 2;
+    protected static final float POST_SIZE_MULTIPLIER = 1.5f;
     protected static final float POST_ANGLE_MULTIPLIER = 30;
     protected static final float MINIMUM_DISTANCE = 6;
+    protected static final float MAXIMUM_DISTANCE = 600;
     protected static final LatLng MOCK_1 = new LatLng(33.7513646, -84.3854675);
     protected static final LatLng MOCK_2 = new LatLng(33.7512475, -84.3855815);
     protected static final LatLng MOCK_3 = new LatLng(33.7515549, -84.3856433);
